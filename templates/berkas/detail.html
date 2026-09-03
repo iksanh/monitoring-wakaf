@@ -1,0 +1,116 @@
+{% extends "layout.html" %}
+{% block judul %}Berkas {{ berkas.no_berkas or berkas.id }}{% endblock %}
+{% block isi %}
+<h1>{{ berkas.nama_objek }}</h1>
+<p class="lemah">
+  {{ berkas.no_berkas | default('Berkas #' ~ berkas.id, true) }} ·
+  {{ berkas.kecamatan_nama }} · {{ berkas.wilayah_nama | kosong }}
+</p>
+
+<div class="kartu">
+  <div class="kartu-baris"><dt>Jenis Permohonan</dt><dd>{{ berkas.jenis_nama }}</dd></div>
+  <div class="kartu-baris"><dt>Tahapan Sekarang</dt><dd><strong>{{ berkas.tahapan_nama }}</strong></dd></div>
+  <div class="kartu-baris"><dt>Status</dt><dd>{{ berkas.status }}</dd></div>
+  <div class="kartu-baris"><dt>Tanggal Daftar</dt><dd>{{ berkas.tanggal_daftar | tanggal }}</dd></div>
+  <div class="kartu-baris"><dt>Target Penyerahan</dt><dd>{{ berkas.target_penyerahan | tanggal }}</dd></div>
+  <div class="kartu-baris"><dt>Petugas</dt><dd>{{ berkas.petugas_nama | kosong }}</dd></div>
+  <div class="kartu-baris"><dt>Objek</dt>
+    <dd><a href="/objek/{{ berkas.objek_wakaf_id }}">{{ berkas.objek_kode }}</a></dd></div>
+</div>
+
+<div class="aksi">
+  <a class="tombol tombol-lain" href="/laporan/berkas/{{ berkas.id }}/kendali.pdf">Daftar Kendali (PDF)</a>
+  {% if pengguna.peran in ('admin','sekretariat') %}
+  <a class="tombol tombol-lain" href="/laporan/berkas/{{ berkas.id }}/berita-acara.pdf">Berita Acara (PDF)</a>
+  {% endif %}
+</div>
+
+{% if pengguna.peran in ('admin','sekretariat','korwil') %}
+<h2>Pindah Tahapan</h2>
+<form method="post" action="/berkas/{{ berkas.id }}/pindah" class="kartu">
+  <label for="tahapan_kode">Tahapan tujuan</label>
+  <select id="tahapan_kode" name="tahapan_kode" required>
+    {% for t in tahapan %}
+    <option value="{{ t.kode }}"
+      {{ 'selected' if berikutnya and t.kode == berikutnya.kode }}>{{ t.urutan }} — {{ t.nama }}</option>
+    {% endfor %}
+  </select>
+  <label for="aksi">Aksi</label>
+  <select id="aksi" name="aksi">
+    <option value="masuk">Masuk tahapan</option>
+    <option value="selesai">Selesai di tahapan</option>
+    <option value="kendala">Catat kendala (posisi tidak berubah)</option>
+    <option value="mundur">Mundur (wajib beralasan)</option>
+  </select>
+  <label for="tanggal">Tanggal kejadian</label>
+  <input id="tanggal" name="tanggal" type="date" value="{{ hari_ini }}">
+  <p class="lemah">Boleh diisi mundur kalau input dilakukan sehari setelah kejadian.</p>
+  <label for="catatan">Catatan</label>
+  <textarea id="catatan" name="catatan"></textarea>
+  <div class="aksi"><button class="tombol">Catat Pergerakan</button></div>
+</form>
+{% endif %}
+
+<h2 id="ceklis">Ceklis Persyaratan</h2>
+<div class="kartu">
+  <div class="kartu-judul">{{ progres.terpenuhi }}/{{ progres.total }} terpenuhi
+    ({{ progres.persen }}%)</div>
+  <div class="corong-bar"><span class="corong-isi" style="width:{{ progres.persen }}%"></span></div>
+  {% if not progres.wajib_lengkap %}
+  <p class="lemah">Syarat wajib belum lengkap
+    ({{ progres.wajib_terpenuhi }}/{{ progres.wajib_total }}).</p>
+  {% endif %}
+</div>
+
+{% if pengguna.peran in ('admin','sekretariat','korwil') %}
+<form method="post" action="/berkas/{{ berkas.id }}/ceklis" class="kartu">
+  {% for c in ceklis %}
+  <div style="border-bottom:1px solid var(--garis);padding:.5rem 0">
+    <label style="color:var(--teks);font-size:.92rem">
+      <input type="checkbox" name="terpenuhi" value="{{ c.syarat_id }}"
+             style="width:auto;min-height:auto" {{ 'checked' if c.terpenuhi }}>
+      {{ c.nama }}{% if c.wajib %} <span class="lencana t-merah">wajib</span>{% endif %}
+    </label>
+    <input name="catatan_{{ c.syarat_id }}" value="{{ c.catatan or '' }}"
+           placeholder="catatan (opsional)">
+  </div>
+  {% else %}
+  <p class="lemah">Tidak ada syarat untuk jenis permohonan ini.</p>
+  {% endfor %}
+  <div class="aksi"><button class="tombol">Simpan Ceklis</button></div>
+</form>
+{% else %}
+<div class="kartu">
+  <ul style="margin:0;padding-left:1.1rem">
+    {% for c in ceklis %}
+    <li>{{ '✓' if c.terpenuhi else '○' }} {{ c.nama }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<h2>Riwayat Tahapan</h2>
+<div class="kartu">
+  <ul class="linimasa">
+    {% for r in linimasa %}
+    <li class="{{ r.aksi }}">
+      <strong>{{ r.tahapan_nama }}</strong> — {{ r.aksi }}<br>
+      {{ r.tanggal | tanggal }} · <span class="lemah">{{ r.nama_pengguna | kosong }}</span>
+      {% if r.catatan %}<div style="white-space:pre-line">{{ r.catatan }}</div>{% endif %}
+    </li>
+    {% else %}
+    <li class="lemah">Belum ada pergerakan.</li>
+    {% endfor %}
+  </ul>
+</div>
+
+<h2>Dokumen Berkas</h2>
+<div class="kartu">
+  {% for d in dokumen %}
+  <div><a href="/dokumen/{{ d.id }}">{{ d.nama_file | default(d.url_eksternal, true) }}</a>
+    <span class="lemah">{{ d.jenis }}</span></div>
+  {% else %}
+  <p class="lemah">Belum ada dokumen. Unggah dari halaman objek.</p>
+  {% endfor %}
+</div>
+{% endblock %}

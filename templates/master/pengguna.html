@@ -1,0 +1,55 @@
+{% extends "layout.html" %}
+{% block judul %}Master Pengguna{% endblock %}
+{% block isi %}
+<h1>Pengguna</h1>
+{% include "komponen/nav_master.html" %}
+
+<div class="tabel-bungkus">
+<table>
+  <tr><th>Nama Pengguna</th><th>Nama</th><th>Peran</th><th>Wilayah</th><th>Aktif</th><th>Aksi</th></tr>
+  {% for b in baris %}
+  <tr>
+    <td>{{ b.username }}</td><td>{{ b.nama }}</td>
+    <td>{{ LABEL_PERAN.get(b.peran, b.peran) }}</td><td>{{ b.wilayah }}</td>
+    <td>{{ 'Ya' if b.aktif else 'Tidak' }}</td>
+    <td>
+      <form method="post" style="display:inline"
+            data-konfirmasi="Ubah status akun {{ b.username }}?">
+        <input type="hidden" name="aksi" value="aktif">
+        <input type="hidden" name="pengguna_id" value="{{ b.id }}">
+        <input type="hidden" name="aktif" value="{{ 0 if b.aktif else 1 }}">
+        <button class="tombol tombol-lain tombol-kecil">{{ 'Nonaktifkan' if b.aktif else 'Aktifkan' }}</button>
+      </form>
+      <form method="post" style="display:inline"
+            data-konfirmasi="Reset sandi {{ b.username }}?">
+        <input type="hidden" name="aksi" value="reset">
+        <input type="hidden" name="pengguna_id" value="{{ b.id }}">
+        <button class="tombol tombol-lain tombol-kecil">Reset Sandi</button>
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+</div>
+
+<h2>Tambah Pengguna</h2>
+<form method="post" class="kartu">
+  <input type="hidden" name="aksi" value="tambah">
+  <label for="username">Nama Pengguna</label>
+  <input id="username" name="username" required autocapitalize="none">
+  <label for="nama">Nama Lengkap</label>
+  <input id="nama" name="nama" required>
+  <label for="peran">Peran</label>
+  <select id="peran" name="peran" required>
+    {% for p in peran %}<option value="{{ p }}">{{ LABEL_PERAN.get(p, p) }}</option>{% endfor %}
+  </select>
+  <label for="wilayah_id">Wilayah (wajib untuk korwil & petugas)</label>
+  <select id="wilayah_id" name="wilayah_id">
+    <option value="">— semua wilayah —</option>
+    {% for w in wilayah %}<option value="{{ w.id }}">{{ w.nama }}</option>{% endfor %}
+  </select>
+  <label for="sandi">Sandi Awal (minimal 8 karakter)</label>
+  <input id="sandi" name="sandi" type="text" required minlength="8">
+  <div class="aksi"><button class="tombol">Tambah</button></div>
+</form>
+{% endblock %}

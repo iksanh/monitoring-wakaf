@@ -1,0 +1,58 @@
+{% extends "layout.html" %}
+{% block judul %}Rekap Harian{% endblock %}
+{% block isi %}
+<h1>Rekap Harian</h1>
+<form method="get" class="saring">
+  <input type="date" name="tanggal" value="{{ tanggal }}">
+  <select name="wilayah_id">
+    <option value="">Semua wilayah</option>
+    {% for w in wilayah %}
+    <option value="{{ w.id }}" {{ 'selected' if wilayah_id == w.id }}>{{ w.nama }}</option>
+    {% endfor %}
+  </select>
+  <button class="tombol penuh">Tampilkan</button>
+</form>
+
+<p class="lemah">{{ rekap.tanggal | tanggal }} — {{ rekap.total }} pergerakan.
+  <a href="/laporan/rekap-harian.xlsx?tanggal={{ tanggal }}">Unduh Excel</a> ·
+  <a href="/laporan/rekap-harian.pdf?tanggal={{ tanggal }}">Cetak PDF</a></p>
+
+<h2>Per Tahapan</h2>
+<div class="tabel-bungkus">
+<table>
+  <tr><th>Tahapan</th><th>Aksi</th><th class="angka">Jumlah</th></tr>
+  {% for b in rekap.per_tahapan %}
+  <tr><td>{{ b.nama }}</td><td>{{ b.aksi }}</td><td class="angka">{{ b.jumlah }}</td></tr>
+  {% else %}
+  <tr><td colspan="3" class="lemah">Tidak ada pergerakan pada tanggal ini.</td></tr>
+  {% endfor %}
+</table>
+</div>
+
+<h2>Per Wilayah</h2>
+<div class="tabel-bungkus">
+<table>
+  <tr><th>Wilayah</th><th class="angka">Jumlah</th></tr>
+  {% for b in rekap.per_wilayah %}
+  <tr><td>{{ b.wilayah }}</td><td class="angka">{{ b.jumlah }}</td></tr>
+  {% else %}
+  <tr><td colspan="2" class="lemah">—</td></tr>
+  {% endfor %}
+</table>
+</div>
+
+<h2>Daftar Berkas yang Bergerak</h2>
+<div class="tabel-bungkus">
+<table>
+  <tr><th>Tahapan</th><th>Aksi</th><th>Objek</th><th>Kecamatan</th><th>Petugas</th><th>Catatan</th></tr>
+  {% for b in rekap.berkas %}
+  <tr><td>{{ b.tahapan_nama }}</td><td>{{ b.aksi }}</td>
+      <td><a href="/berkas/{{ b.berkas_id }}">{{ b.nama_objek }}</a></td>
+      <td>{{ b.kecamatan_nama }}</td><td>{{ b.nama_pengguna | kosong }}</td>
+      <td>{{ b.catatan | kosong }}</td></tr>
+  {% else %}
+  <tr><td colspan="6" class="lemah">Tidak ada.</td></tr>
+  {% endfor %}
+</table>
+</div>
+{% endblock %}

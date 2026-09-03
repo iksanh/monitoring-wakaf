@@ -1,0 +1,17 @@
+{% extends "layout.html" %}
+{% block judul %}Master Tipologi{% endblock %}
+{% block isi %}
+<h1>Tipologi Tanah Wakaf (T1–T7)</h1>
+{% include "komponen/nav_master.html" %}
+{% for b in baris %}
+<div class="kartu">
+  <div class="kartu-judul">
+    {% with kode = b.kode %}{% include "komponen/lencana_tipologi.html" %}{% endwith %}
+    {{ b.nama }}
+    <span class="lemah">· {{ b.jumlah }} objek</span>
+  </div>
+  <div class="lemah">{{ b.kategori }} · {{ b.kompleksitas }}</div>
+  <div style="white-space:pre-line;font-size:.88rem">{{ b.deskripsi }}</div>
+</div>
+{% endfor %}
+{% endblock %}

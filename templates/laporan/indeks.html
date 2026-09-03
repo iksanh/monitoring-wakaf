@@ -1,0 +1,31 @@
+{% extends "layout.html" %}
+{% block judul %}Laporan{% endblock %}
+{% block isi %}
+<h1>Laporan</h1>
+<p class="lemah">Unduh Excel atau cetak PDF. Berkas mengikuti batasan wilayah akun Anda.</p>
+
+<h2>Excel</h2>
+<div class="kartu">
+  <p><a href="/laporan/objek.xlsx">Daftar objek wakaf (.xlsx)</a></p>
+  <p><a href="/laporan/rekap-tahapan.xlsx">Rekap per tahapan (.xlsx)</a></p>
+  <p><a href="/laporan/rekap-potensi.xlsx">Rekap potensi per kecamatan (.xlsx)</a></p>
+</div>
+
+<h2>Rekap Harian</h2>
+<form method="get" action="/laporan/rekap-harian.xlsx" class="kartu">
+  <label for="tanggal">Tanggal</label>
+  <input id="tanggal" name="tanggal" type="date" value="{{ hari_ini }}">
+  <div class="aksi"><button class="tombol">Unduh Excel</button></div>
+</form>
+<form method="get" action="/laporan/rekap-harian.pdf" class="kartu">
+  <label for="tanggal_pdf">Tanggal</label>
+  <input id="tanggal_pdf" name="tanggal" type="date" value="{{ hari_ini }}">
+  <div class="aksi"><button class="tombol tombol-lain">Cetak PDF</button></div>
+</form>
+
+<h2>PDF Lain</h2>
+<div class="kartu">
+  <p><a href="/laporan/rekap-potensi.pdf">Total potensi sertipikat wakaf (PDF)</a></p>
+  <p class="lemah">Daftar kendali dan berita acara dicetak dari halaman detail berkas.</p>
+</div>
+{% endblock %}

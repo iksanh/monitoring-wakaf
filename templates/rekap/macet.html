@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+{% block judul %}Berkas Macet{% endblock %}
+{% block isi %}
+<h1>Berkas Macet</h1>
+<form method="get" class="saring">
+  <label class="penuh" for="hari">Batas diam (hari) — dipakai kalau tahapan belum punya SLA</label>
+  <input id="hari" type="number" name="hari" value="{{ hari }}" min="1">
+  <button class="tombol">Tampilkan</button>
+</form>
+<p class="lemah">{{ baris | length }} berkas melewati batas.</p>
+
+<div class="tabel-bungkus">
+<table>
+  <tr><th>Objek</th><th>Kecamatan</th><th>Wilayah</th><th>Tahapan</th>
+      <th>Gerak Terakhir</th><th class="angka">Umur (hari)</th></tr>
+  {% for b in baris %}
+  <tr><td><a href="/berkas/{{ b.id }}">{{ b.nama_objek }}</a></td>
+      <td>{{ b.kecamatan_nama }}</td><td>{{ b.wilayah_nama | kosong }}</td>
+      <td>{{ b.tahapan_nama }}</td><td>{{ b.tanggal_terakhir | tanggal }}</td>
+      <td class="angka">{{ b.umur_hari }}</td></tr>
+  {% else %}
+  <tr><td colspan="6" class="lemah">Tidak ada berkas yang macet.</td></tr>
+  {% endfor %}
+</table>
+</div>
+{% endblock %}

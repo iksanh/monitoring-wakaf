@@ -1,0 +1,82 @@
+{% extends "layout.html" %}
+{% block judul %}Objek Wakaf{% endblock %}
+{% block isi %}
+<h1>Objek Wakaf</h1>
+
+<form method="get" class="saring">
+  <input class="penuh" type="search" name="q" value="{{ saring.q or '' }}"
+         placeholder="Cari nama objek, wakif, atau kode…">
+  <select name="kecamatan_id">
+    <option value="">Semua kecamatan</option>
+    {% for k in kecamatan %}
+    <option value="{{ k.id }}" {{ 'selected' if saring.kecamatan_id == k.id }}>{{ k.nama }}</option>
+    {% endfor %}
+  </select>
+  <select name="tipologi_kode">
+    <option value="">Semua tipologi</option>
+    <option value="kosong" {{ 'selected' if saring.tipologi_kode == 'kosong' }}>Belum ada tipologi</option>
+    {% for t in tipologi %}
+    <option value="{{ t.kode }}" {{ 'selected' if saring.tipologi_kode == t.kode }}>{{ t.kode }} — {{ t.nama }}</option>
+    {% endfor %}
+  </select>
+  <select name="status_sertipikat">
+    <option value="">Semua status</option>
+    {% for s in ['belum','proses','sudah'] %}
+    <option value="{{ s }}" {{ 'selected' if saring.status_sertipikat == s }}>{{ s | capitalize }}</option>
+    {% endfor %}
+  </select>
+  <select name="aiw">
+    <option value="">AIW: semua</option>
+    <option value="ada" {{ 'selected' if saring.aiw == 'ada' }}>Sudah ada AIW</option>
+    <option value="belum" {{ 'selected' if saring.aiw == 'belum' }}>Belum ada AIW</option>
+  </select>
+  <button class="tombol penuh">Saring</button>
+</form>
+
+<p class="lemah">{{ hasil.total }} objek ditemukan.
+  <a href="/laporan/objek.xlsx?{{ kueri }}">Unduh Excel</a>
+  {% if pengguna.peran in ('admin','sekretariat','korwil','petugas') %}
+  · <a href="/objek/baru">Tambah objek</a>{% endif %}
+</p>
+
+<div class="hanya-mobile">
+  {% for o in hasil.baris %}
+  <div class="kartu">
+    <div class="kartu-judul"><a href="/objek/{{ o.id }}">{{ o.nama_objek }}</a></div>
+    <div class="lemah">{{ o.kode }} · {{ o.desa_nama | kosong }}, {{ o.kecamatan_nama }}</div>
+    <div class="kartu-baris"><dt>Tipologi</dt><dd>
+      {% with kode = o.tipologi_kode, nama = o.tipologi_nama %}
+      {% include "komponen/lencana_tipologi.html" %}{% endwith %}</dd></div>
+    <div class="kartu-baris"><dt>AIW</dt><dd>{{ o.no_aiw | kosong }}</dd></div>
+    <div class="kartu-baris"><dt>Luas</dt><dd>{{ o.luas_persil | luas }}</dd></div>
+  </div>
+  {% else %}
+  <div class="kartu"><p class="lemah">Tidak ada objek yang cocok.</p></div>
+  {% endfor %}
+</div>
+
+<div class="hanya-desktop tabel-bungkus">
+<table>
+  <tr><th>Kode</th><th>Nama Objek</th><th>Desa</th><th>Kecamatan</th><th>Wakif</th>
+      <th>AIW</th><th class="angka">Luas</th><th>Tipologi</th><th>Status</th></tr>
+  {% for o in hasil.baris %}
+  <tr>
+    <td>{{ o.kode }}</td>
+    <td><a href="/objek/{{ o.id }}">{{ o.nama_objek }}</a></td>
+    <td>{{ o.desa_nama | kosong }}</td>
+    <td>{{ o.kecamatan_nama }}</td>
+    <td>{{ o.nama_wakif | kosong }}</td>
+    <td>{{ o.no_aiw | kosong }}</td>
+    <td class="angka">{{ o.luas_persil | luas }}</td>
+    <td>{% with kode = o.tipologi_kode, nama = o.tipologi_nama %}
+        {% include "komponen/lencana_tipologi.html" %}{% endwith %}</td>
+    <td>{{ o.status_sertipikat }}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="9" class="lemah">Tidak ada objek yang cocok.</td></tr>
+  {% endfor %}
+</table>
+</div>
+
+{% include "komponen/paginasi.html" %}
+{% endblock %}

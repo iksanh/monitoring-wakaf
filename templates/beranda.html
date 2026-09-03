@@ -1,0 +1,79 @@
+{% extends "layout.html" %}
+{% block judul %}Beranda{% endblock %}
+{% block isi %}
+<h1>Beranda</h1>
+<p class="lemah">{{ hari_ini | tanggal }}{% if pengguna.wilayah_nama %} · {{ pengguna.wilayah_nama }}{% endif %}</p>
+
+<div class="petak">
+  <div class="kartu"><div class="petak-nilai">{{ ringkasan.objek.total or 0 }}</div>
+    <div class="petak-label">Objek wakaf</div></div>
+  <div class="kartu"><div class="petak-nilai">{{ ringkasan.objek.potensi or 0 }}</div>
+    <div class="petak-label">Potensi sertipikasi</div></div>
+  <div class="kartu"><div class="petak-nilai">{{ ringkasan.berkas_aktif }}</div>
+    <div class="petak-label">Berkas aktif</div></div>
+  <div class="kartu"><div class="petak-nilai">{{ ringkasan.objek.tanpa_aiw or 0 }}</div>
+    <div class="petak-label">Belum ada AIW</div></div>
+</div>
+
+<h2>Corong Tahapan</h2>
+<div class="kartu">
+  {% set puncak = corong.corong | map(attribute='aktif') | map('int') | max if corong.corong else 0 %}
+  {% for t in corong.corong %}
+  <div class="corong-baris">
+    <span class="corong-nama"><a href="/berkas?tahapan_kode={{ t.kode }}">{{ t.nama }}</a></span>
+    <span class="corong-bar"><span class="corong-isi"
+      style="width: {{ ((t.aktif or 0) / puncak * 100) if puncak else 0 }}%"></span></span>
+    <span class="corong-nilai">{{ t.aktif or 0 }}</span>
+  </div>
+  {% endfor %}
+  {% if not corong.total_aktif %}<p class="lemah">Belum ada berkas aktif.</p>{% endif %}
+</div>
+
+<h2>Pergerakan Hari Ini</h2>
+<div class="kartu">
+  {% if harian.berkas %}
+  <ul class="linimasa">
+    {% for b in harian.berkas[:8] %}
+    <li class="{{ b.aksi }}">
+      <strong>{{ b.tahapan_nama }}</strong> · {{ b.aksi }}<br>
+      <a href="/objek?q={{ b.objek_kode }}">{{ b.nama_objek }}</a>
+      <span class="lemah">{{ b.kecamatan_nama }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  <a href="/rekap/harian">Lihat rekap harian →</a>
+  {% else %}
+  <p class="lemah">Belum ada pergerakan berkas hari ini.</p>
+  {% endif %}
+</div>
+
+<h2>Berkas Macet</h2>
+{% if macet %}
+<div class="notif notif-galat">{{ macet | length }} berkas tidak bergerak melebihi batas.</div>
+{% for b in macet %}
+<div class="kartu">
+  <div class="kartu-judul"><a href="/berkas/{{ b.id }}">{{ b.nama_objek }}</a></div>
+  <div class="kartu-baris"><dt>Tahapan</dt><dd>{{ b.tahapan_nama }}</dd></div>
+  <div class="kartu-baris"><dt>Diam sejak</dt>
+    <dd>{{ b.tanggal_terakhir | tanggal }} ({{ b.umur_hari }} hari)</dd></div>
+  <div class="kartu-baris"><dt>Wilayah</dt><dd>{{ b.wilayah_nama | kosong }}</dd></div>
+</div>
+{% endfor %}
+<a href="/rekap/macet">Lihat semua →</a>
+{% else %}
+<div class="kartu"><p class="lemah">Tidak ada berkas yang macet. Bagus.</p></div>
+{% endif %}
+
+<h2>Potensi per Wilayah</h2>
+<div class="tabel-bungkus">
+<table>
+  <tr><th>Wilayah</th><th class="angka">Kecamatan</th><th class="angka">Potensi</th>
+      <th class="angka">Proses</th><th class="angka">Sudah</th></tr>
+  {% for w in wilayah %}
+  <tr><td>{{ w.wilayah }}</td><td class="angka">{{ w.jumlah_kecamatan }}</td>
+      <td class="angka">{{ w.potensi }}</td><td class="angka">{{ w.proses or 0 }}</td>
+      <td class="angka">{{ w.sudah or 0 }}</td></tr>
+  {% endfor %}
+</table>
+</div>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends "layout.html" %}
+{% block judul %}Rekap per Tahapan{% endblock %}
+{% block isi %}
+<h1>Posisi Berkas per Tahapan</h1>
+<form method="get" class="saring">
+  <select name="wilayah_id">
+    <option value="">Semua wilayah</option>
+    {% for w in wilayah %}
+    <option value="{{ w.id }}" {{ 'selected' if wilayah_id == w.id }}>{{ w.nama }}</option>
+    {% endfor %}
+  </select>
+  <button class="tombol">Tampilkan</button>
+</form>
+
+<p class="lemah">{{ rekap.total_aktif }} berkas aktif.
+  <a href="/laporan/rekap-tahapan.xlsx">Unduh Excel</a></p>
+
+<div class="kartu">
+  {% set puncak = rekap.corong | map(attribute='aktif') | map('int') | max if rekap.corong else 0 %}
+  {% for t in rekap.corong %}
+  <div class="corong-baris">
+    <span class="corong-nama"><a href="/berkas?tahapan_kode={{ t.kode }}">{{ t.nama }}</a></span>
+    <span class="corong-bar"><span class="corong-isi"
+      style="width: {{ ((t.aktif or 0) / puncak * 100) if puncak else 0 }}%"></span></span>
+    <span class="corong-nilai">{{ t.aktif or 0 }}</span>
+  </div>
+  {% endfor %}
+</div>
+
+<h2>Per Wilayah</h2>
+<div class="tabel-bungkus">
+<table>
+  <tr><th>Wilayah</th><th>Tahapan</th><th class="angka">Jumlah</th></tr>
+  {% for b in rekap.per_wilayah %}
+  <tr><td>{{ b.wilayah }}</td><td>{{ b.tahapan_kode }}</td><td class="angka">{{ b.jumlah }}</td></tr>
+  {% else %}
+  <tr><td colspan="3" class="lemah">Belum ada berkas aktif.</td></tr>
+  {% endfor %}
+</table>
+</div>
+{% endblock %}

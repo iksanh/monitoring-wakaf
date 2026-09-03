@@ -1,0 +1,45 @@
+{% extends "layout.html" %}
+{% block judul %}Rekap Potensi{% endblock %}
+{% block isi %}
+<h1>Total Potensi Sertipikat Wakaf</h1>
+<form method="get" class="saring">
+  <select name="wilayah_id">
+    <option value="">Semua wilayah</option>
+    {% for w in wilayah %}
+    <option value="{{ w.id }}" {{ 'selected' if wilayah_id == w.id }}>{{ w.nama }}</option>
+    {% endfor %}
+  </select>
+  <button class="tombol">Tampilkan</button>
+</form>
+<p class="lemah"><a href="/laporan/rekap-potensi.xlsx">Unduh Excel</a> ·
+  <a href="/laporan/rekap-potensi.pdf">Cetak PDF</a></p>
+
+<div class="tabel-bungkus">
+<table>
+  <tr><th>Kecamatan</th><th>Wilayah</th><th class="angka">Baru</th>
+      <th class="angka">Ada Hak</th><th class="angka">Isbat</th><th class="angka">Total</th></tr>
+  {% for b in baris %}
+  <tr><td><a href="/objek?kecamatan_id={{ b.id }}">{{ b.kecamatan }}</a></td>
+      <td>{{ b.wilayah }}</td><td class="angka">{{ b.baru or 0 }}</td>
+      <td class="angka">{{ b.ada_hak or 0 }}</td><td class="angka">{{ b.isbat or 0 }}</td>
+      <td class="angka"><strong>{{ b.total or 0 }}</strong></td></tr>
+  {% endfor %}
+  <tr><th>TOTAL</th><th></th><th class="angka">{{ total.baru }}</th>
+      <th class="angka">{{ total.ada_hak }}</th><th class="angka">{{ total.isbat }}</th>
+      <th class="angka">{{ total.total }}</th></tr>
+</table>
+</div>
+
+<h2>Per Wilayah</h2>
+<div class="tabel-bungkus">
+<table>
+  <tr><th>Wilayah</th><th class="angka">Kecamatan</th><th class="angka">Potensi</th>
+      <th class="angka">Proses</th><th class="angka">Sudah</th></tr>
+  {% for w in wilayah_rekap %}
+  <tr><td>{{ w.wilayah }}</td><td class="angka">{{ w.jumlah_kecamatan }}</td>
+      <td class="angka">{{ w.potensi }}</td><td class="angka">{{ w.proses or 0 }}</td>
+      <td class="angka">{{ w.sudah or 0 }}</td></tr>
+  {% endfor %}
+</table>
+</div>
+{% endblock %}

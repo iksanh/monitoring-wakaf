@@ -1,0 +1,46 @@
+{% extends "layout.html" %}
+{% block judul %}Berkas Baru{% endblock %}
+{% block isi %}
+<h1>Buat Berkas</h1>
+<p class="lemah">Objek: <a href="/objek/{{ objek.id }}">{{ objek.nama_objek }}</a>
+  ({{ objek.kode }})</p>
+{% if galat %}
+<div class="notif notif-galat">{% for g in galat %}{{ g }}{% endfor %}</div>
+{% endif %}
+
+<form method="post" class="kartu">
+  <label for="jenis_permohonan_kode">Jenis Permohonan *</label>
+  <select id="jenis_permohonan_kode" name="jenis_permohonan_kode" required>
+    <option value="">— pilih —</option>
+    {% for j in jenis %}
+    <option value="{{ j.kode }}"
+      {{ 'selected' if nilai.jenis_permohonan_kode == j.kode }}>{{ j.nama }}</option>
+    {% endfor %}
+  </select>
+  <p class="lemah">Ceklis persyaratan akan otomatis disalin sesuai jenis yang dipilih.</p>
+
+  <label for="no_berkas">Nomor Berkas (loket KKP, boleh dikosongkan)</label>
+  <input id="no_berkas" name="no_berkas" value="{{ nilai.no_berkas or '' }}">
+  <label for="tanggal_daftar">Tanggal Daftar</label>
+  <input id="tanggal_daftar" name="tanggal_daftar" type="date"
+         value="{{ nilai.tanggal_daftar or hari_ini }}">
+  <label for="target_penyerahan">Target Penyerahan</label>
+  <input id="target_penyerahan" name="target_penyerahan" type="date"
+         value="{{ nilai.target_penyerahan or '' }}">
+  <label for="petugas_id">Petugas</label>
+  <select id="petugas_id" name="petugas_id">
+    <option value="">— belum ditentukan —</option>
+    {% for p in petugas %}
+    <option value="{{ p.id }}" {{ 'selected' if nilai.petugas_id == p.id }}>
+      {{ p.nama }} ({{ p.peran }})</option>
+    {% endfor %}
+  </select>
+  <label for="catatan">Catatan</label>
+  <textarea id="catatan" name="catatan">{{ nilai.catatan or '' }}</textarea>
+
+  <div class="aksi aksi-lengket">
+    <button class="tombol">Buat Berkas</button>
+    <a class="tombol tombol-lain" href="/objek/{{ objek.id }}">Batal</a>
+  </div>
+</form>
+{% endblock %}

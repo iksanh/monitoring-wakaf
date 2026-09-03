@@ -1,0 +1,35 @@
+{% extends "layout.html" %}
+{% block judul %}Akun Baru Dibuat{% endblock %}
+{% block isi %}
+<h1>{{ dibuat | length }} Akun Berhasil Dibuat</h1>
+
+<div class="notif notif-ingat">
+  <strong>Catat atau cetak halaman ini sekarang.</strong> Sandi di bawah hanya
+  ditampilkan sekali — yang tersimpan di database cuma hash-nya, jadi tidak ada
+  cara melihatnya lagi. Kalau sandinya telanjur hilang, admin bisa mengatur ulang
+  lewat halaman Pengguna.
+</div>
+
+<div class="aksi">
+  <button type="button" class="tombol tombol-lain" onclick="window.print()">Cetak</button>
+  <a class="tombol" href="/master/tim">Selesai</a>
+</div>
+
+<div class="tabel-bungkus">
+<table>
+  <tr><th>Nama</th><th>Wilayah</th><th>Jabatan</th><th>Nama Pengguna</th>
+      <th>Sandi Awal</th><th>Peran</th></tr>
+  {% for a in dibuat %}
+  <tr>
+    <td>{{ a.nama }}</td><td>{{ a.wilayah }}</td><td>{{ a.jabatan }}</td>
+    <td><strong>{{ a.username }}</strong></td>
+    <td><code style="font-size:1rem">{{ a.sandi }}</code></td>
+    <td>{{ LABEL_PERAN.get(a.peran, a.peran) }}</td>
+  </tr>
+  {% endfor %}
+</table>
+</div>
+
+<p class="lemah">Minta setiap pegawai mengganti sandinya lewat menu
+  <em>Ganti Sandi</em> setelah login pertama.</p>
+{% endblock %}

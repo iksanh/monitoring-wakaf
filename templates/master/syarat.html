@@ -1,0 +1,17 @@
+{% extends "layout.html" %}
+{% block judul %}Master Syarat{% endblock %}
+{% block isi %}
+<h1>Ceklis Persyaratan</h1>
+{% include "komponen/nav_master.html" %}
+<p class="lemah">Diambil dari sheet Kontrol. Disalin otomatis ke tiap berkas baru.</p>
+<div class="tabel-bungkus">
+<table>
+  <tr><th>Jenis Permohonan</th><th class="angka">No</th><th>Persyaratan</th><th>Wajib</th></tr>
+  {% for b in baris %}
+  <tr><td>{{ b.jenis_nama }}</td><td class="angka">{{ b.urutan }}</td>
+      <td style="white-space:pre-line">{{ b.nama }}</td>
+      <td>{{ 'Ya' if b.wajib else 'Tidak' }}</td></tr>
+  {% endfor %}
+</table>
+</div>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends "layout.html" %}
+{% block judul %}Rekap Penyerahan{% endblock %}
+{% block isi %}
+<h1>Rekap Penyerahan</h1>
+<form method="get" class="saring">
+  <input type="date" name="tanggal" value="{{ tanggal }}">
+  <button class="tombol">Tampilkan</button>
+</form>
+<p class="lemah">Berkas di tahapan Penyerahan dengan target atau tanggal selesai
+  {{ rekap.tanggal | tanggal }} — total {{ rekap.total }}.</p>
+
+<div class="tabel-bungkus">
+<table>
+  <tr><th>Wilayah</th>
+    {% for j in rekap.jenis %}<th class="angka">{{ j.nama }}</th>{% endfor %}
+    <th class="angka">Total</th></tr>
+  {% for nama, isi in rekap.pivot.items() %}
+  <tr><td>{{ nama }}</td>
+    {% for j in rekap.jenis %}<td class="angka">{{ isi[j.kode] or 0 }}</td>{% endfor %}
+    <td class="angka"><strong>{{ isi.total }}</strong></td></tr>
+  {% else %}
+  <tr><td colspan="{{ rekap.jenis | length + 2 }}" class="lemah">
+    Belum ada berkas penyerahan untuk tanggal ini.</td></tr>
+  {% endfor %}
+</table>
+</div>
+{% endblock %}

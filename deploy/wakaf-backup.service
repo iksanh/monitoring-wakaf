@@ -1,0 +1,8 @@
+[Unit]
+Description=Cadangan database app-wakaf
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/app-wakaf.env
+ExecStart=/srv/app-wakaf/deploy/backup.sh
+User=ubuntu

@@ -1,0 +1,5 @@
+{% if kode %}
+<span class="lencana t-{{ warna_tipologi(kode) }}" title="{{ nama | default('') }}">{{ kode }}</span>
+{% else %}
+<span class="lencana t-abu">belum</span>
+{% endif %}

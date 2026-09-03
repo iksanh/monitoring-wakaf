@@ -1,0 +1,31 @@
+{% extends "layout.html" %}
+{% block judul %}Rekap Tipologi{% endblock %}
+{% block isi %}
+<h1>Sebaran Tipologi Permasalahan</h1>
+<form method="get" class="saring">
+  <select name="kecamatan_id">
+    <option value="">Semua kecamatan</option>
+    {% for k in kecamatan %}
+    <option value="{{ k.id }}" {{ 'selected' if kecamatan_id == k.id }}>{{ k.nama }}</option>
+    {% endfor %}
+  </select>
+  <button class="tombol">Tampilkan</button>
+</form>
+
+<div class="tabel-bungkus">
+<table>
+  <tr><th>Kode</th><th>Nama</th><th>Kategori</th><th>Kompleksitas</th><th class="angka">Jumlah</th></tr>
+  {% for b in baris %}
+  <tr>
+    <td>{% with kode = b.kode %}{% include "komponen/lencana_tipologi.html" %}{% endwith %}</td>
+    <td>{{ b.nama }}</td><td>{{ b.kategori | kosong }}</td>
+    <td>{{ b.kompleksitas | kosong }}</td>
+    <td class="angka"><a href="/objek?tipologi_kode={{ b.kode }}">{{ b.jumlah }}</a></td>
+  </tr>
+  {% endfor %}
+  <tr><td colspan="4">Belum ditentukan</td>
+      <td class="angka"><a href="/objek?tipologi_kode=kosong">{{ kosong }}</a></td></tr>
+  <tr><th colspan="4">TOTAL TERISI</th><th class="angka">{{ total }}</th></tr>
+</table>
+</div>
+{% endblock %}

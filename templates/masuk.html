@@ -1,0 +1,57 @@
+{% extends "layout.html" %}
+{% block judul %}Masuk{% endblock %}
+{% block isi %}
+<div class="masuk-layar">
+
+  <div class="masuk-kartu">
+    <div class="masuk-kepala">
+      <span class="masuk-lambang" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor"
+             stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 3h7l5 5v7"/>
+          <path d="M13 3v5h5"/>
+          <path d="M6 3v18h6"/>
+          <circle cx="17.5" cy="17.5" r="3"/>
+          <path d="M16 20.2V23l1.5-1 1.5 1v-2.8"/>
+        </svg>
+      </span>
+      <h1>Sertipikasi Tanah Wakaf</h1>
+      <p class="masuk-sub">{{ NAMA_KANTOR }}</p>
+    </div>
+
+    {% if galat %}
+    <div class="notif notif-galat masuk-galat" role="alert">{{ galat }}</div>
+    {% endif %}
+
+    <form method="post" class="masuk-form" id="form-masuk">
+      <input type="hidden" name="lanjut" value="{{ lanjut }}">
+
+      <div class="masuk-medan">
+        <label for="username">Nama Pengguna</label>
+        <input id="username" name="username" value="{{ username|default('', true) }}"
+               autocomplete="username" autocapitalize="none" autocorrect="off"
+               spellcheck="false" enterkeyhint="next" required
+               {% if not username %}autofocus{% endif %}>
+      </div>
+
+      <div class="masuk-medan">
+        <label for="sandi">Sandi</label>
+        <div class="masuk-sandi">
+          <input id="sandi" name="sandi" type="password" autocomplete="current-password"
+                 enterkeyhint="go" required {% if username %}autofocus{% endif %}>
+          <button type="button" class="masuk-lihat" id="tombol-lihat-sandi"
+                  aria-controls="sandi" aria-pressed="false">Lihat</button>
+        </div>
+        <p class="masuk-petunjuk" id="petunjuk-capslock" hidden>Caps Lock sedang aktif.</p>
+      </div>
+
+      <button class="tombol tombol-penuh">Masuk</button>
+    </form>
+  </div>
+
+  <p class="masuk-kaki">
+    Lupa sandi? Hubungi admin sekretariat untuk disetel ulang.
+  </p>
+
+</div>
+{% endblock %}

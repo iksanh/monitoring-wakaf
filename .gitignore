@@ -1,0 +1,11 @@
+venv/
+*.db
+*.db-wal
+*.db-shm
+data_master/
+data_sumber/
+data_berkas/
+__pycache__/
+*.pyc
+.env
+PROMPT_CLAUDE_CODE.md

@@ -1,0 +1,16 @@
+{% extends "layout.html" %}
+{% block judul %}Ganti Sandi{% endblock %}
+{% block isi %}
+<h1>Ganti Sandi</h1>
+{% if galat %}<div class="notif notif-galat">{{ galat }}</div>{% endif %}
+<form method="post" class="kartu" style="max-width:420px">
+  <label for="sandi_lama">Sandi Lama</label>
+  <input id="sandi_lama" name="sandi_lama" type="password" required>
+  <label for="sandi_baru">Sandi Baru (minimal 8 karakter)</label>
+  <input id="sandi_baru" name="sandi_baru" type="password" required minlength="8">
+  <label for="sandi_ulang">Ulangi Sandi Baru</label>
+  <input id="sandi_ulang" name="sandi_ulang" type="password" required minlength="8">
+  <div class="aksi"><button class="tombol">Simpan</button>
+    <a class="tombol tombol-lain" href="/">Batal</a></div>
+</form>
+{% endblock %}

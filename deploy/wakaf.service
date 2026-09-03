@@ -1,0 +1,25 @@
+[Unit]
+Description=Aplikasi Sertipikasi Tanah Wakaf (app-wakaf)
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/srv/app-wakaf
+EnvironmentFile=/etc/app-wakaf.env
+ExecStart=/srv/app-wakaf/venv/bin/python -m uvicorn app:app \
+    --workers 2 --host 127.0.0.1 --port 8000 --proxy-headers \
+    --forwarded-allow-ips 127.0.0.1
+Restart=always
+RestartSec=5
+
+# Pengetatan. ProtectHome=false karena direktori data ada di /data.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=false
+ReadWritePaths=/data
+
+[Install]
+WantedBy=multi-user.target

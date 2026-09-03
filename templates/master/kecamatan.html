@@ -1,0 +1,18 @@
+{% extends "layout.html" %}
+{% block judul %}Master Kecamatan{% endblock %}
+{% block isi %}
+<h1>Kecamatan</h1>
+{% include "komponen/nav_master.html" %}
+<p class="lemah">17 kecamatan, dikelompokkan ke Wilayah I–IV.</p>
+<div class="tabel-bungkus">
+<table>
+  <tr><th>Nama</th><th>Kode</th><th>Wilayah</th><th class="angka">Desa</th>
+      <th class="angka">Objek Wakaf</th></tr>
+  {% for b in baris %}
+  <tr><td>{{ b.nama }}</td><td>{{ b.kode_singkat }}</td><td>{{ b.wilayah }}</td>
+      <td class="angka">{{ b.jumlah_desa }}</td>
+      <td class="angka"><a href="/objek?kecamatan_id={{ b.id }}">{{ b.jumlah_objek }}</a></td></tr>
+  {% endfor %}
+</table>
+</div>
+{% endblock %}

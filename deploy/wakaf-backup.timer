@@ -1,0 +1,9 @@
+[Unit]
+Description=Jalankan cadangan app-wakaf tiap hari pukul 02.00 WITA
+
+[Timer]
+OnCalendar=*-*-* 02:00:00 Asia/Makassar
+Persistent=true
+
+[Install]
+WantedBy=timers.target

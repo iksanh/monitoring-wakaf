@@ -1,0 +1,129 @@
+{% extends "layout.html" %}
+{% block judul %}{{ objek.nama_objek }}{% endblock %}
+{% block isi %}
+<h1>{{ objek.nama_objek }}</h1>
+<p class="lemah">{{ objek.kode }} · {{ objek.desa_nama | kosong }}, {{ objek.kecamatan_nama }}
+  {% if objek.wilayah_nama %}· {{ objek.wilayah_nama }}{% endif %}</p>
+
+<div class="aksi">
+  {% if pengguna.peran != 'pimpinan' %}
+  <a class="tombol" href="/objek/{{ objek.id }}/ubah">Ubah</a>
+  {% endif %}
+  {% if pengguna.peran in ('admin','sekretariat','korwil') %}
+  <a class="tombol tombol-lain" href="/objek/{{ objek.id }}/berkas/baru">Buat Berkas</a>
+  {% endif %}
+  {% if objek.url_maps %}
+  <a class="tombol tombol-lain" href="{{ objek.url_maps }}" target="_blank" rel="noopener">Peta</a>
+  {% endif %}
+</div>
+
+<h2>Data Objek</h2>
+<div class="kartu">
+  {% macro baris(label, nilai) %}
+  <div class="kartu-baris"><dt>{{ label }}</dt><dd>{{ nilai | kosong }}</dd></div>
+  {% endmacro %}
+  <div class="kartu-baris"><dt>Tipologi</dt><dd>
+    {% with kode = objek.tipologi_kode, nama = objek.tipologi_nama %}
+    {% include "komponen/lencana_tipologi.html" %}{% endwith %}
+    {{ objek.tipologi_nama | default('', true) }}</dd></div>
+  {{ baris('Nama Wakif', objek.nama_wakif) }}
+  {{ baris('Nama Nadzir', objek.nama_nadzir) }}
+  {{ baris('AIW/APAIW', objek.no_aiw) }}
+  {{ baris('Tanggal AIW', objek.tanggal_aiw | tanggal) }}
+  {{ baris('Tipe Hak', objek.tipe_hak) }}
+  {{ baris('NIB', objek.nib) }}
+  {{ baris('Luas Persil', objek.luas_persil | luas) }}
+  {{ baris('Kecamatan KKP', objek.kecamatan_kkp) }}
+  {{ baris('Desa KKP', objek.desa_kkp) }}
+  {{ baris('RTRW', objek.rtrw) }}
+  {{ baris('Rekomendasi Isbat', objek.rekomendasi_isbat) }}
+  {{ baris('Status Sertipikat', objek.status_sertipikat) }}
+  {{ baris('Potensi', 'Ya' if objek.is_potensi else 'Tidak') }}
+  {{ baris('Sumber Data', objek.sumber_data) }}
+  {{ baris('Koordinat', (objek.latitude ~ ', ' ~ objek.longitude) if objek.latitude else None) }}
+</div>
+{% if objek.keterangan %}
+<div class="kartu"><div class="kartu-judul">Keterangan</div>
+  <div style="white-space:pre-line">{{ objek.keterangan }}</div></div>
+{% endif %}
+{% if objek.catatan_kua %}
+<div class="kartu"><div class="kartu-judul">Catatan KUA</div>
+  <div style="white-space:pre-line">{{ objek.catatan_kua }}</div></div>
+{% endif %}
+
+<h2>Berkas Permohonan</h2>
+{% for b in berkas %}
+<div class="kartu">
+  <div class="kartu-judul"><a href="/berkas/{{ b.id }}">{{ b.no_berkas | default('Berkas #' ~ b.id, true) }}</a></div>
+  <div class="kartu-baris"><dt>Jenis</dt><dd>{{ b.jenis_nama }}</dd></div>
+  <div class="kartu-baris"><dt>Tahapan</dt><dd>{{ b.tahapan_nama }}</dd></div>
+  <div class="kartu-baris"><dt>Status</dt><dd>{{ b.status }}</dd></div>
+</div>
+{% else %}
+<div class="kartu"><p class="lemah">Belum ada berkas untuk objek ini.</p></div>
+{% endfor %}
+
+<h2 id="dokumen">Dokumen</h2>
+{% for d in dokumen %}
+<div class="kartu">
+  <div class="kartu-judul"><a href="/dokumen/{{ d.id }}">{{ d.nama_file | default(d.url_eksternal, true) }}</a></div>
+  <div class="lemah">{{ d.jenis }} · {{ d.diunggah_pada }} · {{ d.nama_pengunggah | kosong }}</div>
+</div>
+{% else %}
+<div class="kartu"><p class="lemah">Belum ada dokumen.</p></div>
+{% endfor %}
+
+{% if pengguna.peran != 'pimpinan' %}
+<form method="post" action="/objek/{{ objek.id }}/dokumen" enctype="multipart/form-data" class="kartu">
+  <label for="jenis">Jenis dokumen</label>
+  <input id="jenis" name="jenis" placeholder="mis. AIW, foto lokasi, sertipikat">
+  <label for="berkas_file">Unggah file (jpg/png/pdf, maks 10 MB)</label>
+  <input id="berkas_file" name="berkas_file" type="file" accept=".jpg,.jpeg,.png,.pdf">
+  <label for="url_eksternal">…atau tempel tautan Google Drive</label>
+  <input id="url_eksternal" name="url_eksternal" type="url" placeholder="https://drive.google.com/…">
+  <div class="aksi"><button class="tombol">Simpan Dokumen</button></div>
+</form>
+{% endif %}
+
+<h2 id="kunjungan">Kunjungan Lapangan</h2>
+{% for k in kunjungan %}
+<div class="kartu">
+  <div class="kartu-judul">{{ k.tanggal | tanggal }} — {{ k.hasil | kosong }}</div>
+  <div class="lemah">{{ k.nama_petugas | kosong }}
+    {% if k.latitude %}· {{ k.latitude }}, {{ k.longitude }}{% endif %}</div>
+  {% if k.catatan %}<div style="white-space:pre-line">{{ k.catatan }}</div>{% endif %}
+</div>
+{% else %}
+<div class="kartu"><p class="lemah">Belum ada kunjungan tercatat.</p></div>
+{% endfor %}
+
+{% if pengguna.peran != 'pimpinan' %}
+<form method="post" action="/objek/{{ objek.id }}/kunjungan" class="kartu"
+      data-draft="kunjungan-{{ objek.id }}">
+  <label for="tanggal">Tanggal kunjungan</label>
+  <input id="tanggal" name="tanggal" type="date" value="{{ objek.diubah_pada[:10] if false }}">
+  <label for="hasil">Hasil</label>
+  <input id="hasil" name="hasil" placeholder="mis. batas sudah dipasang">
+  <label for="catatan">Catatan</label>
+  <textarea id="catatan" name="catatan"></textarea>
+  <input type="hidden" name="latitude"><input type="hidden" name="longitude">
+  <p class="lemah" data-koordinat-status>Koordinat kunjungan boleh dikosongkan.</p>
+  <div class="aksi">
+    <button type="button" class="tombol tombol-lain" data-ambil-koordinat>Ambil Koordinat</button>
+    <button class="tombol">Catat Kunjungan</button>
+  </div>
+</form>
+{% endif %}
+
+<h2>Riwayat Perubahan</h2>
+<div class="kartu">
+  <ul class="linimasa">
+    {% for r in riwayat %}
+    <li><strong>{{ r.aksi }}</strong> · {{ r.waktu }}<br>
+      <span class="lemah">{{ r.nama_pengguna | kosong }}</span></li>
+    {% else %}
+    <li class="lemah">Belum ada perubahan tercatat.</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}

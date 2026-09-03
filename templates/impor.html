@@ -1,0 +1,30 @@
+{% extends "layout.html" %}
+{% block judul %}Impor Excel{% endblock %}
+{% block isi %}
+<h1>Impor Data Excel</h1>
+{% if galat %}<div class="notif notif-galat">{{ galat }}</div>{% endif %}
+
+<p class="lemah">Unggah <code>Rekapan Wakaf Bone bolango.xlsx</code>. Jalankan pratinjau
+  dulu, periksa angkanya, baru simpan. Impor bersifat idempoten — menjalankan dua kali
+  tidak menggandakan data.</p>
+
+<form method="post" enctype="multipart/form-data" class="kartu">
+  <label for="berkas_excel">File Excel (.xlsx)</label>
+  <input id="berkas_excel" name="berkas_excel" type="file" accept=".xlsx" required>
+  <div class="aksi">
+    <button class="tombol tombol-lain" name="aksi" value="pratinjau">Pratinjau (dry-run)</button>
+    <button class="tombol" name="aksi" value="simpan"
+      onclick="return confirm('Simpan hasil impor ke database?')">Simpan</button>
+  </div>
+</form>
+
+{% if laporan %}
+<h2>Hasil {{ 'Pratinjau' if dry_run else 'Impor' }} — {{ nama_berkas }}</h2>
+{% if dry_run %}
+<div class="notif notif-ingat">Pratinjau saja. Tidak ada yang ditulis ke database.</div>
+{% else %}
+<div class="notif notif-sukses">{{ laporan.total_tersimpan }} objek tersimpan.</div>
+{% endif %}
+<div class="kartu"><pre style="white-space:pre-wrap;font-size:.78rem;margin:0">{{ teks_laporan }}</pre></div>
+{% endif %}
+{% endblock %}

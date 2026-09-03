@@ -1,0 +1,52 @@
+{% extends "layout.html" %}
+{% block judul %}Susunan Tim{% endblock %}
+{% block isi %}
+<h1>Susunan Tim Wilayah</h1>
+{% include "komponen/nav_master.html" %}
+
+<p class="lemah">{{ baris | length }} anggota tim, {{ belum_punya }} belum punya akun.
+  Akun dibuat dari daftar ini supaya peran dan wilayahnya otomatis benar —
+  korwil dan petugas hanya bisa melihat data wilayahnya sendiri.</p>
+
+{% if belum_punya %}
+<form method="post" data-konfirmasi="Buatkan akun untuk {{ belum_punya }} anggota yang belum punya?">
+  <input type="hidden" name="aksi" value="semua">
+  <div class="aksi"><button class="tombol">Buatkan Akun untuk {{ belum_punya }} Anggota</button></div>
+</form>
+{% endif %}
+
+<form method="post">
+  {% set wilayah_kini = namespace(nama='') %}
+  {% for t in baris %}
+    {% if t.wilayah != wilayah_kini.nama %}
+      {% set wilayah_kini.nama = t.wilayah %}
+      <h2>{{ t.wilayah }}</h2>
+    {% endif %}
+  <div class="kartu">
+    <div class="kartu-judul">
+      {% if not t.pengguna_id %}
+      <input type="checkbox" name="tim_id" value="{{ t.id }}" style="width:auto;min-height:auto">
+      {% endif %}
+      {{ t.nama }}
+      <span class="lencana {{ 't-hijau' if t.jabatan == 'Korwil' else 't-abu' }}">{{ t.jabatan }}</span>
+    </div>
+    <div class="kartu-baris"><dt>Kecamatan binaan</dt><dd>{{ t.kecamatan | kosong }}</dd></div>
+    <div class="kartu-baris"><dt>Akun</dt><dd>
+      {% if t.username %}
+        <strong>{{ t.username }}</strong>
+        <span class="lencana t-hijau">{{ LABEL_PERAN.get(t.peran, t.peran) }}</span>
+        {% if not t.aktif %}<span class="lencana t-merah">nonaktif</span>{% endif %}
+      {% else %}
+        <span class="lemah">belum dibuat</span>
+      {% endif %}
+    </dd></div>
+  </div>
+  {% endfor %}
+
+  {% if belum_punya %}
+  <div class="aksi aksi-lengket">
+    <button class="tombol">Buatkan Akun untuk yang Dicentang</button>
+  </div>
+  {% endif %}
+</form>
+{% endblock %}

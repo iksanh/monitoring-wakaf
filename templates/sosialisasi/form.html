@@ -1,0 +1,48 @@
+{% extends "layout.html" %}
+{% block judul %}Jadwal Sosialisasi{% endblock %}
+{% block isi %}
+<h1>{{ 'Ubah' if nilai.id else 'Tambah' }} Jadwal Sosialisasi</h1>
+{% if galat %}
+<div class="notif notif-galat">{% for g in galat %}{{ g }}{% endfor %}</div>
+{% endif %}
+
+<form method="post" class="kartu">
+  <label for="tanggal">Tanggal *</label>
+  <input id="tanggal" name="tanggal" type="date" required value="{{ nilai.tanggal or '' }}">
+  <label for="jam_mulai">Jam mulai</label>
+  <input id="jam_mulai" name="jam_mulai" value="{{ nilai.jam_mulai or '' }}" placeholder="09.00">
+  <label for="jam_selesai">Jam selesai</label>
+  <input id="jam_selesai" name="jam_selesai" value="{{ nilai.jam_selesai or '' }}" placeholder="12.00">
+  <label for="lokasi">Lokasi</label>
+  <input id="lokasi" name="lokasi" value="{{ nilai.lokasi or '' }}">
+  <label for="pembina">Pembina</label>
+  <input id="pembina" name="pembina" value="{{ nilai.pembina or '' }}">
+
+  <label>Kecamatan sasaran</label>
+  <div class="kartu" style="max-height:240px;overflow:auto;margin:0">
+    {% for k in kecamatan %}
+    <label style="color:var(--teks)">
+      <input type="checkbox" name="kecamatan_id" value="{{ k.id }}"
+             style="width:auto;min-height:auto"
+             {{ 'checked' if k.id in terpilih }}> {{ k.nama }}</label>
+    {% endfor %}
+  </div>
+
+  <label for="status">Status</label>
+  <select id="status" name="status">
+    {% for s in ['rencana','terlaksana','batal'] %}
+    <option value="{{ s }}" {{ 'selected' if nilai.status == s }}>{{ s | capitalize }}</option>
+    {% endfor %}
+  </select>
+  <label for="jumlah_peserta">Jumlah peserta</label>
+  <input id="jumlah_peserta" name="jumlah_peserta" type="number"
+         value="{{ nilai.jumlah_peserta or '' }}">
+  <label for="catatan">Catatan hasil</label>
+  <textarea id="catatan" name="catatan">{{ nilai.catatan or '' }}</textarea>
+
+  <div class="aksi aksi-lengket">
+    <button class="tombol">Simpan</button>
+    <a class="tombol tombol-lain" href="/sosialisasi">Batal</a>
+  </div>
+</form>
+{% endblock %}

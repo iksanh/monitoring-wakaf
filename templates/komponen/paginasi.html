@@ -1,0 +1,17 @@
+{% if hasil.jumlah_halaman > 1 %}
+<nav class="paginasi">
+  {% set dasar = request.url.path %}
+  {% set kueri = [] %}
+  {% for k, v in request.query_params.items() if k != 'hlm' %}
+    {% set _ = kueri.append(k ~ '=' ~ v) %}
+  {% endfor %}
+  {% set awalan = dasar ~ '?' ~ (kueri | join('&')) ~ ('&' if kueri else '') %}
+  {% if hasil.halaman > 1 %}
+    <a href="{{ awalan }}hlm={{ hasil.halaman - 1 }}">‹ Sebelumnya</a>
+  {% endif %}
+  <span class="kini">{{ hasil.halaman }} / {{ hasil.jumlah_halaman }}</span>
+  {% if hasil.halaman < hasil.jumlah_halaman %}
+    <a href="{{ awalan }}hlm={{ hasil.halaman + 1 }}">Berikutnya ›</a>
+  {% endif %}
+</nav>
+{% endif %}

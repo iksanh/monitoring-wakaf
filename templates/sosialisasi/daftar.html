@@ -1,0 +1,41 @@
+{% extends "layout.html" %}
+{% block judul %}Sosialisasi{% endblock %}
+{% block isi %}
+<h1>Jadwal Sosialisasi</h1>
+<form method="get" class="saring">
+  <select name="status">
+    <option value="">Semua status</option>
+    {% for s in ['rencana','terlaksana','batal'] %}
+    <option value="{{ s }}" {{ 'selected' if status == s }}>{{ s | capitalize }}</option>
+    {% endfor %}
+  </select>
+  <button class="tombol">Saring</button>
+</form>
+
+{% if pengguna.peran in ('admin','sekretariat') %}
+<div class="aksi"><a class="tombol" href="/sosialisasi/baru">Tambah Jadwal</a></div>
+{% endif %}
+
+{% for s in baris %}
+<div class="kartu" id="s{{ s.id }}">
+  <div class="kartu-judul">{{ s.tanggal | tanggal }}
+    <span class="lencana {{ 't-hijau' if s.status == 'terlaksana' else ('t-merah' if s.status == 'batal' else 't-kuning') }}">{{ s.status }}</span>
+    {% if s.tanggal == hari_ini %}<span class="lencana t-hijau">hari ini</span>{% endif %}
+  </div>
+  <div class="kartu-baris"><dt>Waktu</dt>
+    <dd>{{ s.jam_mulai | kosong }}–{{ s.jam_selesai | kosong }}</dd></div>
+  <div class="kartu-baris"><dt>Kecamatan sasaran</dt><dd>{{ s.kecamatan_sasaran | kosong }}</dd></div>
+  <div class="kartu-baris"><dt>Lokasi</dt><dd>{{ s.lokasi | kosong }}</dd></div>
+  <div class="kartu-baris"><dt>Pembina</dt><dd>{{ s.pembina | kosong }}</dd></div>
+  {% if s.jumlah_peserta %}
+  <div class="kartu-baris"><dt>Peserta</dt><dd>{{ s.jumlah_peserta }}</dd></div>{% endif %}
+  {% if s.catatan %}<div style="white-space:pre-line">{{ s.catatan }}</div>{% endif %}
+  {% if pengguna.peran in ('admin','sekretariat') %}
+  <div class="aksi"><a class="tombol tombol-lain tombol-kecil"
+    href="/sosialisasi/{{ s.id }}/ubah">Ubah / tandai terlaksana</a></div>
+  {% endif %}
+</div>
+{% else %}
+<div class="kartu"><p class="lemah">Belum ada jadwal.</p></div>
+{% endfor %}
+{% endblock %}

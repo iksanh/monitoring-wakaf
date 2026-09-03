@@ -1,0 +1,110 @@
+{% extends "layout.html" %}
+{% block judul %}{{ 'Ubah' if objek else 'Tambah' }} Objek Wakaf{% endblock %}
+{% block isi %}
+<h1>{{ 'Ubah Objek' if objek else 'Tambah Objek Wakaf' }}</h1>
+{% if galat %}
+<div class="notif notif-galat"><ul style="margin:0;padding-left:1.1rem">
+  {% for g in galat %}<li>{{ g }}</li>{% endfor %}</ul></div>
+{% endif %}
+<p class="lemah">Hanya nama objek, kecamatan, dan desa yang wajib. Sisanya boleh dikosongkan
+  dan dilengkapi belakangan.</p>
+
+<form method="post" class="kartu" data-draft="objek-{{ objek.id if objek else 'baru' }}"
+      {% if objek %}data-draft-pulih="tidak"{% endif %}>
+  <label for="nama_objek">Nama Objek *</label>
+  <input id="nama_objek" name="nama_objek" required value="{{ nilai.nama_objek or '' }}">
+
+  <label for="kecamatan_id">Kecamatan *</label>
+  <select id="kecamatan_id" name="kecamatan_id" required>
+    <option value="">— pilih —</option>
+    {% for k in kecamatan %}
+    <option value="{{ k.id }}" {{ 'selected' if nilai.kecamatan_id == k.id }}>{{ k.nama }}</option>
+    {% endfor %}
+  </select>
+
+  <label for="desa_id">Desa *</label>
+  <select id="desa_id" name="desa_id" required data-induk-kecamatan="kecamatan_id">
+    <option value="">— pilih —</option>
+    {% for d in desa %}
+    <option value="{{ d.id }}" data-kecamatan="{{ d.kecamatan_id }}"
+            {{ 'selected' if nilai.desa_id == d.id }}>{{ d.nama }}</option>
+    {% endfor %}
+  </select>
+
+  <label for="nama_wakif">Nama Wakif</label>
+  <input id="nama_wakif" name="nama_wakif" value="{{ nilai.nama_wakif or '' }}">
+  <label for="nama_nadzir">Nama Nadzir</label>
+  <input id="nama_nadzir" name="nama_nadzir" value="{{ nilai.nama_nadzir or '' }}">
+  <label for="no_aiw">Nomor AIW/APAIW</label>
+  <input id="no_aiw" name="no_aiw" value="{{ nilai.no_aiw or '' }}">
+  <label for="tanggal_aiw">Tanggal AIW</label>
+  <input id="tanggal_aiw" name="tanggal_aiw" type="date" value="{{ nilai.tanggal_aiw or '' }}">
+  <label for="jenis_alas_hak">Jenis Alas Hak</label>
+  <input id="jenis_alas_hak" name="jenis_alas_hak" value="{{ nilai.jenis_alas_hak or '' }}">
+  <label for="tipe_hak">Tipe Hak</label>
+  <input id="tipe_hak" name="tipe_hak" value="{{ nilai.tipe_hak or '' }}">
+  <label for="nib">NIB</label>
+  <input id="nib" name="nib" value="{{ nilai.nib or '' }}">
+  <label for="luas_persil">Luas Persil (m²)</label>
+  <input id="luas_persil" name="luas_persil" type="number" step="0.01" inputmode="decimal"
+         value="{{ nilai.luas_persil or '' }}">
+  <label for="kecamatan_kkp">Kecamatan KKP</label>
+  <input id="kecamatan_kkp" name="kecamatan_kkp" value="{{ nilai.kecamatan_kkp or '' }}">
+  <label for="desa_kkp">Kelurahan/Desa KKP</label>
+  <input id="desa_kkp" name="desa_kkp" value="{{ nilai.desa_kkp or '' }}">
+  <label for="rtrw">RTRW</label>
+  <input id="rtrw" name="rtrw" value="{{ nilai.rtrw or '' }}">
+
+  <label for="tipologi_kode">Tipologi Permasalahan</label>
+  <select id="tipologi_kode" name="tipologi_kode">
+    <option value="">— belum ditentukan —</option>
+    {% for t in tipologi %}
+    <option value="{{ t.kode }}" {{ 'selected' if nilai.tipologi_kode == t.kode }}>
+      {{ t.kode }} — {{ t.nama }}</option>
+    {% endfor %}
+  </select>
+
+  <label for="rekomendasi_isbat">Rekomendasi Isbat</label>
+  <input id="rekomendasi_isbat" name="rekomendasi_isbat" value="{{ nilai.rekomendasi_isbat or '' }}">
+
+  <label for="status_sertipikat">Status Sertipikat</label>
+  <select id="status_sertipikat" name="status_sertipikat">
+    {% for s in ['belum','proses','sudah'] %}
+    <option value="{{ s }}" {{ 'selected' if nilai.status_sertipikat == s }}>{{ s | capitalize }}</option>
+    {% endfor %}
+  </select>
+
+  <label for="url_maps">Tautan Google Maps</label>
+  <input id="url_maps" name="url_maps" type="url" value="{{ nilai.url_maps or '' }}">
+  <label for="url_dokumen">Tautan Dokumen</label>
+  <input id="url_dokumen" name="url_dokumen" type="url" value="{{ nilai.url_dokumen or '' }}">
+  <label>Koordinat Lokasi</label>
+  <div class="aksi" style="margin-top:.2rem">
+    <button type="button" class="tombol tombol-lain" data-ambil-koordinat>
+      Ambil dari GPS Perangkat</button>
+  </div>
+  <p class="lemah" data-koordinat-status>
+    Berdiri di titik objek, lalu tekan tombol di atas. Boleh juga diisi manual.</p>
+
+  <label for="latitude">Latitude</label>
+  <input id="latitude" name="latitude" inputmode="decimal"
+         value="{{ nilai.latitude or '' }}" placeholder="mis. 0.563210">
+  <label for="longitude">Longitude</label>
+  <input id="longitude" name="longitude" inputmode="decimal"
+         value="{{ nilai.longitude or '' }}" placeholder="mis. 123.107450">
+
+  <label for="keterangan">Keterangan</label>
+  <textarea id="keterangan" name="keterangan">{{ nilai.keterangan or '' }}</textarea>
+  <label for="catatan_kua">Catatan KUA</label>
+  <textarea id="catatan_kua" name="catatan_kua">{{ nilai.catatan_kua or '' }}</textarea>
+
+  <label><input type="checkbox" name="is_potensi" value="1" style="width:auto;min-height:auto"
+    {{ 'checked' if nilai.is_potensi }}> Dihitung sebagai potensi sertipikasi</label>
+
+  <div class="aksi aksi-lengket">
+    <button class="tombol">Simpan</button>
+    <a class="tombol tombol-lain"
+       href="{{ ('/objek/' ~ objek.id) if objek else '/objek' }}">Batal</a>
+  </div>
+</form>
+{% endblock %}

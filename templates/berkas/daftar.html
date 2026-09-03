@@ -1,0 +1,73 @@
+{% extends "layout.html" %}
+{% block judul %}Berkas{% endblock %}
+{% block isi %}
+<h1>Berkas Permohonan</h1>
+
+<form method="get" class="saring">
+  <input class="penuh" type="search" name="q" value="{{ saring.q or '' }}"
+         placeholder="Cari nama objek atau nomor berkas…">
+  <select name="tahapan_kode">
+    <option value="">Semua tahapan</option>
+    {% for t in tahapan %}
+    <option value="{{ t.kode }}" {{ 'selected' if saring.tahapan_kode == t.kode }}>{{ t.nama }}</option>
+    {% endfor %}
+  </select>
+  <select name="wilayah_id">
+    <option value="">Semua wilayah</option>
+    {% for w in wilayah %}
+    <option value="{{ w.id }}" {{ 'selected' if saring.wilayah_id == w.id }}>{{ w.nama }}</option>
+    {% endfor %}
+  </select>
+  <select name="jenis_permohonan_kode">
+    <option value="">Semua jenis</option>
+    {% for j in jenis %}
+    <option value="{{ j.kode }}" {{ 'selected' if saring.jenis_permohonan_kode == j.kode }}>{{ j.nama }}</option>
+    {% endfor %}
+  </select>
+  <select name="status">
+    <option value="">Semua status</option>
+    {% for s in ['aktif','selesai','tertunda','batal'] %}
+    <option value="{{ s }}" {{ 'selected' if saring.status == s }}>{{ s | capitalize }}</option>
+    {% endfor %}
+  </select>
+  <button class="tombol penuh">Saring</button>
+</form>
+
+<p class="lemah">{{ hasil.total }} berkas ditemukan.</p>
+
+<div class="hanya-mobile">
+  {% for b in hasil.baris %}
+  <div class="kartu">
+    <div class="kartu-judul"><a href="/berkas/{{ b.id }}">{{ b.nama_objek }}</a></div>
+    <div class="lemah">{{ b.no_berkas | kosong }} · {{ b.kecamatan_nama }}</div>
+    <div class="kartu-baris"><dt>Tahapan</dt><dd>{{ b.tahapan_nama }}</dd></div>
+    <div class="kartu-baris"><dt>Jenis</dt><dd>{{ b.jenis_nama }}</dd></div>
+    <div class="kartu-baris"><dt>Status</dt><dd>{{ b.status }}</dd></div>
+    <div class="kartu-baris"><dt>Gerak terakhir</dt>
+      <dd>{{ b.tanggal_gerak_terakhir | tanggal }}</dd></div>
+  </div>
+  {% else %}
+  <div class="kartu"><p class="lemah">Belum ada berkas.</p></div>
+  {% endfor %}
+</div>
+
+<div class="hanya-desktop tabel-bungkus">
+<table>
+  <tr><th>No Berkas</th><th>Objek</th><th>Kecamatan</th><th>Wilayah</th><th>Jenis</th>
+      <th>Tahapan</th><th>Status</th><th>Gerak Terakhir</th></tr>
+  {% for b in hasil.baris %}
+  <tr>
+    <td>{{ b.no_berkas | kosong }}</td>
+    <td><a href="/berkas/{{ b.id }}">{{ b.nama_objek }}</a></td>
+    <td>{{ b.kecamatan_nama }}</td><td>{{ b.wilayah_nama | kosong }}</td>
+    <td>{{ b.jenis_nama }}</td><td>{{ b.tahapan_nama }}</td><td>{{ b.status }}</td>
+    <td>{{ b.tanggal_gerak_terakhir | tanggal }}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="8" class="lemah">Belum ada berkas.</td></tr>
+  {% endfor %}
+</table>
+</div>
+
+{% include "komponen/paginasi.html" %}
+{% endblock %}
