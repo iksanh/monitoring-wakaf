@@ -100,6 +100,15 @@
 
   <label><input type="checkbox" name="is_potensi" value="1" style="width:auto;min-height:auto"
     {{ 'checked' if nilai.is_potensi }}> Dihitung sebagai potensi sertipikasi</label>
+  <label><input type="checkbox" name="is_prioritas" value="1" style="width:auto;min-height:auto"
+    {{ 'checked' if nilai.is_prioritas }}> Berkas prioritas</label>
+  <p class="lemah">Objek bertanda prioritas naik ke urutan teratas daftar objek dan
+    daftar berkas, dan bisa disaring tersendiri.</p>
+  <label><input type="checkbox" name="perlu_isbat" value="1" style="width:auto;min-height:auto"
+    {{ 'checked' if nilai.perlu_isbat }}> Harus lewat isbat pengadilan dulu</label>
+  <p class="lemah">Centang kalau AIW tidak ada sehingga wakafnya perlu ditetapkan
+    Pengadilan Agama sebelum berkas bisa didaftarkan di loket. Nomor dan tanggal
+    penetapannya diisi nanti di halaman berkas.</p>
 
   <div class="aksi aksi-lengket">
     <button class="tombol">Simpan</button>

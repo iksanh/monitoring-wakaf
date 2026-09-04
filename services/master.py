@@ -175,9 +175,86 @@ def tambah_pengguna(data: dict, oleh: int) -> str | None:
     return None
 
 
-def set_aktif(pengguna_id: int, aktif: int, oleh: int) -> None:
-    db.jalankan("UPDATE pengguna SET aktif = ? WHERE id = ?", (1 if aktif else 0, pengguna_id))
+def ambil_pengguna(pengguna_id: int) -> dict | None:
+    return db.ambil_satu(
+        """SELECT p.id, p.username, p.nama, p.peran, p.wilayah_id, p.aktif,
+                  COALESCE(w.nama, '-') AS wilayah
+             FROM pengguna p LEFT JOIN wilayah w ON w.id = p.wilayah_id
+            WHERE p.id = ?""",
+        (pengguna_id,),
+    )
+
+
+def _admin_aktif_lain(pengguna_id: int) -> int:
+    """Jumlah admin aktif SELAIN pengguna ini.
+
+    Dipakai untuk mencegah kantor terkunci total: kalau nol, akun ini satu-satunya
+    pintu masuk ke menu Master dan tidak boleh diturunkan perannya atau
+    dinonaktifkan.
+    """
+    return db.ambil_nilai(
+        """SELECT COUNT(*) FROM pengguna
+            WHERE peran = 'admin' AND aktif = 1 AND id <> ?""",
+        (pengguna_id,), 0,
+    )
+
+
+def ubah_pengguna(pengguna_id: int, data: dict, oleh: int) -> str | None:
+    """Ubah identitas, peran, dan wilayah pengguna. Sandi diurus reset_sandi().
+
+    Kembalikan pesan galat, atau None kalau sukses.
+    """
+    lama = ambil_pengguna(pengguna_id)
+    if not lama:
+        return "Pengguna tidak ditemukan."
+
+    username = (data.get("username") or "").strip().lower()
+    nama = (data.get("nama") or "").strip()
+    peran = data.get("peran")
+    wilayah_id = data.get("wilayah_id")
+
+    if not username or not nama:
+        return "Nama pengguna dan nama lengkap wajib diisi."
+    if peran not in auth.PERAN_TERSEDIA:
+        return "Peran tidak dikenal."
+    if peran in auth.PERAN_TERBATAS_WILAYAH and not wilayah_id:
+        return "Peran korwil dan petugas wajib punya wilayah."
+    if db.ambil_satu("SELECT id FROM pengguna WHERE username = ? AND id <> ?",
+                     (username, pengguna_id)):
+        return "Nama pengguna sudah dipakai."
+    if lama["peran"] == "admin" and peran != "admin"             and not _admin_aktif_lain(pengguna_id):
+        return ("Ini satu-satunya admin yang aktif. Angkat admin lain dulu "
+                "sebelum menurunkan perannya.")
+
+    # Wilayah hanya bermakna untuk peran yang datanya dibatasi wilayah.
+    if peran not in auth.PERAN_TERBATAS_WILAYAH:
+        wilayah_id = None
+
+    db.jalankan(
+        """UPDATE pengguna SET username = ?, nama = ?, peran = ?, wilayah_id = ?
+            WHERE id = ?""",
+        (username, nama, peran, wilayah_id, pengguna_id),
+    )
+    audit.catat(None, oleh, "ubah", "pengguna", pengguna_id,
+                {k: lama[k] for k in ("username", "nama", "peran", "wilayah_id")},
+                {"username": username, "nama": nama, "peran": peran,
+                 "wilayah_id": wilayah_id})
+    return None
+
+
+def set_aktif(pengguna_id: int, aktif: int, oleh: int) -> str | None:
+    """Aktifkan atau nonaktifkan akun. Kembalikan pesan galat, atau None."""
+    aktif = 1 if aktif else 0
+    if not aktif:
+        lama = ambil_pengguna(pengguna_id)
+        if not lama:
+            return "Pengguna tidak ditemukan."
+        if lama["peran"] == "admin" and not _admin_aktif_lain(pengguna_id):
+            return ("Ini satu-satunya admin yang aktif. Menonaktifkannya akan "
+                    "mengunci semua orang dari menu Master.")
+    db.jalankan("UPDATE pengguna SET aktif = ? WHERE id = ?", (aktif, pengguna_id))
     audit.catat(None, oleh, "set_aktif", "pengguna", pengguna_id, None, {"aktif": aktif})
+    return None
 
 
 def reset_sandi(pengguna_id: int, oleh: int) -> str:

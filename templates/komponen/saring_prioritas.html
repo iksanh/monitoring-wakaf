@@ -1,0 +1,6 @@
+{# Penyaring prioritas untuk dashboard & semua halaman rekap. Butuh `prioritas`. #}
+<select name="prioritas">
+  <option value="">Prioritas: semua</option>
+  <option value="ya" {{ 'selected' if prioritas == 'ya' }}>Hanya prioritas</option>
+  <option value="tidak" {{ 'selected' if prioritas == 'tidak' }}>Bukan prioritas</option>
+</select>

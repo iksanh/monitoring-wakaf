@@ -69,7 +69,21 @@ Konsekuensi yang harus dipatuhi:
    service, bukan hanya menyembunyikan tombol di template.
 4. **Objek wakaf tidak pernah dihapus fisik.** Pakai kolom status / `is_aktif`.
 5. Setiap perubahan data (create/update/delete) menulis `log_audit`.
-6. Data tidak lengkap **harus boleh disimpan** (235 dari 346 objek belum punya AIW).
+6. **Satu objek wakaf = satu berkas permohonan.** Objek yang sudah punya
+   berkas tidak boleh dibuatkan berkas lagi. Ditegakkan di
+   `services/berkas.buat()` (raise `BerkasGanda`) DAN oleh indeks unik parsial
+   `idx_berkas_satu_per_objek`. Berkas berstatus `batal` tidak menghalangi,
+   supaya objek yang permohonannya dibatalkan bisa didaftarkan ulang. Daftar
+   `/berkas` menyembunyikan yang `batal` kecuali filter Status memintanya —
+   objeknya sudah kembali jadi objek wakaf biasa. Pembatalan lewat
+   `services/berkas_aksi.batalkan()`, wajib beralasan.
+7. **Isbat bukan jenis permohonan.** Isbat terjadi sebelum berkas didaftarkan di
+   loket; permohonannya tetap `pertama_kali` dengan salinan penetapan sebagai
+   lampiran. Penandanya dua lapis: `objek_wakaf.perlu_isbat` (rencana, dipakai
+   Rekap Potensi untuk objek yang belum punya berkas) dan `berkas.no_penetapan` +
+   `tanggal_penetapan` (realisasi). Selama `tanggal_penetapan` kosong, perkaranya
+   dianggap masih di Pengadilan Agama.
+8. Data tidak lengkap **harus boleh disimpan** (235 dari 346 objek belum punya AIW).
    Validasi ketat hanya pada: nama objek, kecamatan, desa.
 
 ## UI
@@ -148,6 +162,13 @@ Diverifikasi ulang terhadap file Excel saat Fase 2 — **belum dikonfirmasi ke p
 4. Blok Kemenag: 39 baris (Suwawa Selatan 15, Bulango Ulu 7, Bone Pantai 17). Header
    blok di sheet Bone Pantai bergeser satu kolom dari datanya — importer menghitung
    pergeserannya dari letak nyata nilai ID_KEMENAG.
+
+5. **Kolom "Rekomendasi Isbat" di Excel bukan penanda, melainkan catatan bebas.**
+   Cuma 2 dari 223 baris terisi, dan salah satunya `LP2B` (Lahan Pertanian Pangan
+   Berkelanjutan — catatan tata ruang, bukan isbat). Rekap potensi dulu
+   memperlakukan kolom itu sebagai flag sehingga objek LP2B ikut terhitung isbat.
+   Sekarang klasifikasi memakai `objek_wakaf.perlu_isbat`; teks `LP2B` dipindah ke
+   kolom `keterangan` oleh migrasi 008.
 
 Keputusan sementara yang dipakai (bisa diubah): semua 223 baris masuk sebagai
 `objek_wakaf` dengan `is_potensi = 1`.

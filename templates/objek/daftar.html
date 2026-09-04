@@ -30,6 +30,11 @@
     <option value="ada" {{ 'selected' if saring.aiw == 'ada' }}>Sudah ada AIW</option>
     <option value="belum" {{ 'selected' if saring.aiw == 'belum' }}>Belum ada AIW</option>
   </select>
+  <select name="prioritas">
+    <option value="">Prioritas: semua</option>
+    <option value="ya" {{ 'selected' if saring.prioritas == 'ya' }}>Hanya prioritas</option>
+    <option value="tidak" {{ 'selected' if saring.prioritas == 'tidak' }}>Bukan prioritas</option>
+  </select>
   <button class="tombol penuh">Saring</button>
 </form>
 
@@ -42,7 +47,9 @@
 <div class="hanya-mobile">
   {% for o in hasil.baris %}
   <div class="kartu">
-    <div class="kartu-judul"><a href="/objek/{{ o.id }}">{{ o.nama_objek }}</a></div>
+    <div class="kartu-judul"><a href="/objek/{{ o.id }}">{{ o.nama_objek }}</a>
+      {% with aktif = o.is_prioritas %}
+      {% include "komponen/lencana_prioritas.html" %}{% endwith %}</div>
     <div class="lemah">{{ o.kode }} · {{ o.desa_nama | kosong }}, {{ o.kecamatan_nama }}</div>
     <div class="kartu-baris"><dt>Tipologi</dt><dd>
       {% with kode = o.tipologi_kode, nama = o.tipologi_nama %}
@@ -62,7 +69,9 @@
   {% for o in hasil.baris %}
   <tr>
     <td>{{ o.kode }}</td>
-    <td><a href="/objek/{{ o.id }}">{{ o.nama_objek }}</a></td>
+    <td><a href="/objek/{{ o.id }}">{{ o.nama_objek }}</a>
+        {% with aktif = o.is_prioritas %}
+        {% include "komponen/lencana_prioritas.html" %}{% endwith %}</td>
     <td>{{ o.desa_nama | kosong }}</td>
     <td>{{ o.kecamatan_nama }}</td>
     <td>{{ o.nama_wakif | kosong }}</td>

@@ -30,6 +30,11 @@
     <option value="{{ s }}" {{ 'selected' if saring.status == s }}>{{ s | capitalize }}</option>
     {% endfor %}
   </select>
+  <select name="prioritas">
+    <option value="">Prioritas: semua</option>
+    <option value="ya" {{ 'selected' if saring.prioritas == 'ya' }}>Hanya prioritas</option>
+    <option value="tidak" {{ 'selected' if saring.prioritas == 'tidak' }}>Bukan prioritas</option>
+  </select>
   <button class="tombol penuh">Saring</button>
 </form>
 
@@ -38,7 +43,9 @@
 <div class="hanya-mobile">
   {% for b in hasil.baris %}
   <div class="kartu">
-    <div class="kartu-judul"><a href="/berkas/{{ b.id }}">{{ b.nama_objek }}</a></div>
+    <div class="kartu-judul"><a href="/berkas/{{ b.id }}">{{ b.nama_objek }}</a>
+      {% with aktif = b.is_prioritas %}
+      {% include "komponen/lencana_prioritas.html" %}{% endwith %}</div>
     <div class="lemah">{{ b.no_berkas | kosong }} · {{ b.kecamatan_nama }}</div>
     <div class="kartu-baris"><dt>Tahapan</dt><dd>{{ b.tahapan_nama }}</dd></div>
     <div class="kartu-baris"><dt>Jenis</dt><dd>{{ b.jenis_nama }}</dd></div>
@@ -58,7 +65,9 @@
   {% for b in hasil.baris %}
   <tr>
     <td>{{ b.no_berkas | kosong }}</td>
-    <td><a href="/berkas/{{ b.id }}">{{ b.nama_objek }}</a></td>
+    <td><a href="/berkas/{{ b.id }}">{{ b.nama_objek }}</a>
+        {% with aktif = b.is_prioritas %}
+        {% include "komponen/lencana_prioritas.html" %}{% endwith %}</td>
     <td>{{ b.kecamatan_nama }}</td><td>{{ b.wilayah_nama | kosong }}</td>
     <td>{{ b.jenis_nama }}</td><td>{{ b.tahapan_nama }}</td><td>{{ b.status }}</td>
     <td>{{ b.tanggal_gerak_terakhir | tanggal }}</td>

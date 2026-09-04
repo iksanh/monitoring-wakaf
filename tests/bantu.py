@@ -47,16 +47,17 @@ class BasisTes(unittest.TestCase):
         )
 
     def buat_objek(self, nama="Masjid Uji", kecamatan="Suwawa", tipologi=None,
-                   tipe_hak=None, rekomendasi_isbat=None, status="belum") -> int:
+                   tipe_hak=None, rekomendasi_isbat=None, status="belum",
+                   perlu_isbat=0) -> int:
         kec = self.db.ambil_satu("SELECT id FROM kecamatan WHERE nama = ?", (kecamatan,))
         urut = self.db.ambil_nilai("SELECT COUNT(*) FROM objek_wakaf", (), 0) + 1
         return self.db.jalankan(
             """INSERT INTO objek_wakaf (kode, nama_objek, kecamatan_id, tipologi_kode,
                                         tipe_hak, rekomendasi_isbat, status_sertipikat,
-                                        is_potensi, sumber_data)
-               VALUES (?, ?, ?, ?, ?, ?, ?, 1, 'uji')""",
+                                        is_potensi, sumber_data, perlu_isbat)
+               VALUES (?, ?, ?, ?, ?, ?, ?, 1, 'uji', ?)""",
             (f"WKF-UJI-{urut:03d}", nama, kec["id"], tipologi, tipe_hak,
-             rekomendasi_isbat, status),
+             rekomendasi_isbat, status, perlu_isbat),
         )
 
     def buat_berkas(self, objek_id, jenis="pertama_kali", tahapan="permohonan",

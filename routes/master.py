@@ -1,5 +1,5 @@
 """Route master data (read-only untuk verifikasi + kelola pengguna)."""
-from starlette.responses import RedirectResponse
+from starlette.responses import PlainTextResponse, RedirectResponse
 from starlette.routing import Route
 
 import auth
@@ -60,9 +60,9 @@ async def pengguna(request):
             }, request.state.pengguna["id"])
             web.pesan(request, galat or "Pengguna ditambahkan.")
         elif aksi == "aktif":
-            svc.set_aktif(int(f["pengguna_id"]), int(f["aktif"]),
-                          request.state.pengguna["id"])
-            web.pesan(request, "Status pengguna diperbarui.")
+            galat = svc.set_aktif(int(f["pengguna_id"]), int(f["aktif"]),
+                                  request.state.pengguna["id"])
+            web.pesan(request, galat or "Status pengguna diperbarui.")
         elif aksi == "reset":
             sandi = svc.reset_sandi(int(f["pengguna_id"]), request.state.pengguna["id"])
             web.pesan(request, f"Sandi baru: {sandi} — catat sekarang.")
@@ -73,10 +73,40 @@ async def pengguna(request):
     })
 
 
+@auth.butuh_peran("admin")
+async def ubah_pengguna(request):
+    pengguna_id = int(request.path_params["id"])
+    orang = svc.ambil_pengguna(pengguna_id)
+    if not orang:
+        return PlainTextResponse("404 — Pengguna tidak ditemukan.", 404)
+
+    galat = None
+    if request.method == "POST":
+        f = await request.form()
+        nilai = {
+            "username": web.teks_atau_none(f.get("username")),
+            "nama": web.teks_atau_none(f.get("nama")),
+            "peran": f.get("peran"),
+            "wilayah_id": web.int_atau(f.get("wilayah_id")),
+        }
+        galat = svc.ubah_pengguna(pengguna_id, nilai, request.state.pengguna["id"])
+        if not galat:
+            web.pesan(request, f"Data {nilai['username']} diperbarui.")
+            return RedirectResponse("/master/pengguna", status_code=303)
+        orang = {**orang, **nilai}   # tahan isian pengguna supaya tidak hilang
+
+    return web.render(request, "master/pengguna_form.html", {
+        "orang": orang, "wilayah": svc.wilayah(), "peran": auth.PERAN_TERSEDIA,
+        "galat": galat, "diri_sendiri": pengguna_id == request.state.pengguna["id"],
+    }, status=400 if galat else 200)
+
+
 rute = [
     Route("/master/kecamatan", kecamatan),
     Route("/master/tipologi", tipologi),
     Route("/master/syarat", syarat),
     Route("/master/tim", tim, methods=["GET", "POST"]),
     Route("/master/pengguna", pengguna, methods=["GET", "POST"]),
+    Route("/master/pengguna/{id:int}/ubah", ubah_pengguna,
+          methods=["GET", "POST"]),
 ]

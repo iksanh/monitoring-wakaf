@@ -16,6 +16,7 @@ def _saring_dari(request) -> dict:
         "tipologi_kode": web.teks_atau_none(p.get("tipologi_kode")),
         "status_sertipikat": web.teks_atau_none(p.get("status_sertipikat")),
         "aiw": web.teks_atau_none(p.get("aiw")),
+        "prioritas": web.teks_atau_none(p.get("prioritas")),
         "q": web.teks_atau_none(p.get("q")),
     }
 
@@ -48,6 +49,8 @@ async def _form_data(request) -> dict:
         "url_dokumen": ambil("url_dokumen"),
         "status_sertipikat": ambil("status_sertipikat") or "belum",
         "is_potensi": 1 if form.get("is_potensi") else 0,
+        "perlu_isbat": 1 if form.get("perlu_isbat") else 0,
+        "is_prioritas": 1 if form.get("is_prioritas") else 0,
     }
 
 

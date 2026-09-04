@@ -4,6 +4,16 @@
 <h1>Beranda</h1>
 <p class="lemah">{{ hari_ini | tanggal }}{% if pengguna.wilayah_nama %} · {{ pengguna.wilayah_nama }}{% endif %}</p>
 
+<form method="get" class="saring">
+  {% include "komponen/saring_prioritas.html" %}
+  <button class="tombol">Tampilkan</button>
+</form>
+{% if prioritas %}
+<div class="notif notif-ingat">Seluruh angka di halaman ini disaring:
+  <strong>{{ 'hanya berkas prioritas' if prioritas == 'ya' else 'tanpa berkas prioritas' }}</strong>.
+  <a href="/">Tampilkan semua</a></div>
+{% endif %}
+
 <div class="petak">
   <div class="kartu"><div class="petak-nilai">{{ ringkasan.objek.total or 0 }}</div>
     <div class="petak-label">Objek wakaf</div></div>
@@ -14,6 +24,8 @@
   <div class="kartu"><div class="petak-nilai">{{ ringkasan.objek.tanpa_aiw or 0 }}</div>
     <div class="petak-label">Belum ada AIW</div></div>
 </div>
+
+<p><a href="/rekap/kendali">Papan Kendali Korwil →</a></p>
 
 <h2>Corong Tahapan</h2>
 <div class="kartu">

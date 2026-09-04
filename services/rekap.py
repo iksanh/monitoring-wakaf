@@ -5,10 +5,13 @@ from auth import PERAN_TERBATAS_WILAYAH
 
 # Klasifikasi potensi (pengganti kolom Baru / Ada Hak / Isbat di sheet POTENSI WAKAF).
 # Diturunkan dari data, bukan diketik tangan.
+#
+# Kelas 'isbat' membaca flag objek_wakaf.perlu_isbat, bukan teks bebas
+# rekomendasi_isbat. Kolom teks itu di Excel dipakai sebagai catatan campur —
+# salah satu isinya 'LP2B' (catatan tata ruang) yang dulu ikut terhitung isbat.
 _KELAS_POTENSI = """
     CASE
-        WHEN o.rekomendasi_isbat IS NOT NULL
-             AND trim(o.rekomendasi_isbat) NOT IN ('', '-') THEN 'isbat'
+        WHEN o.perlu_isbat = 1 THEN 'isbat'
         WHEN o.tipe_hak IS NOT NULL
              AND trim(o.tipe_hak) NOT IN ('', '-') THEN 'ada_hak'
         ELSE 'baru'
@@ -25,10 +28,25 @@ def _batas(pengguna, wilayah_id=None) -> tuple[str, list]:
     return ("", [])
 
 
-def rekap_harian(tanggal: str | None = None, wilayah_id=None, pengguna=None) -> dict:
+def _prioritas(nilai) -> str:
+    """Fragment SQL penyaring prioritas untuk alias objek `o`.
+
+    Nilainya tidak pernah masuk SQL — hanya dipetakan dari 'ya'/'tidak' ke
+    fragment tetap, apa pun selain itu berarti tidak menyaring.
+    """
+    if nilai == "ya":
+        return " AND o.is_prioritas = 1 "
+    if nilai == "tidak":
+        return " AND o.is_prioritas = 0 "
+    return ""
+
+
+def rekap_harian(tanggal: str | None = None, wilayah_id=None, pengguna=None,
+                 prioritas=None) -> dict:
     """Pergerakan pada satu tanggal, dikelompokkan per tahapan dan per wilayah."""
     tanggal = tanggal or config.hari_ini_iso()
     batas, p = _batas(pengguna, wilayah_id)
+    batas += _prioritas(prioritas)
 
     per_tahapan = db.ambil_semua(
         f"""SELECT t.kode, t.nama, t.urutan, r.aksi, COUNT(*) AS jumlah
@@ -73,19 +91,25 @@ def rekap_harian(tanggal: str | None = None, wilayah_id=None, pengguna=None) -> 
             "total": len(daftar)}
 
 
-def rekap_tahapan(wilayah_id=None, pengguna=None) -> dict:
+def rekap_tahapan(wilayah_id=None, pengguna=None, prioritas=None) -> dict:
     """Posisi berkas aktif sekarang per tahapan (corong)."""
     batas, p = _batas(pengguna, wilayah_id)
-    # Filter wilayah ditaruh di klausa JOIN supaya tahapan yang kosong tetap muncul.
-    join_batas = " AND k.wilayah_id = ? " if batas else ""
+    saring = _prioritas(prioritas)
+    # Berkas yang lolos filter disaring dulu di subquery, baru di-LEFT JOIN ke
+    # tahapan. Kalau filternya ditaruh di klausa JOIN objek/kecamatan, baris
+    # berkas tetap ikut terhitung (kolomnya cuma jadi NULL) sehingga corong
+    # mengabaikan filter — itu perilaku sebelum perbaikan ini.
     corong = db.ambil_semua(
         f"""SELECT t.kode, t.nama, t.urutan, t.sla_hari,
                    SUM(CASE WHEN b.status = 'aktif' THEN 1 ELSE 0 END) AS aktif,
                    COUNT(b.id) AS semua
               FROM tahapan t
-              LEFT JOIN berkas b ON b.tahapan_kode = t.kode
-              LEFT JOIN objek_wakaf o ON o.id = b.objek_wakaf_id
-              LEFT JOIN kecamatan k ON k.id = o.kecamatan_id {join_batas}
+              LEFT JOIN (SELECT b.id, b.status, b.tahapan_kode
+                           FROM berkas b
+                           JOIN objek_wakaf o ON o.id = b.objek_wakaf_id
+                           JOIN kecamatan k ON k.id = o.kecamatan_id
+                          WHERE 1=1 {batas} {saring}) b
+                     ON b.tahapan_kode = t.kode
              GROUP BY t.kode ORDER BY t.urutan""",
         tuple(p),
     )
@@ -96,7 +120,7 @@ def rekap_tahapan(wilayah_id=None, pengguna=None) -> dict:
               JOIN objek_wakaf o ON o.id = b.objek_wakaf_id
               JOIN kecamatan k ON k.id = o.kecamatan_id
               LEFT JOIN wilayah w ON w.id = k.wilayah_id
-             WHERE b.status = 'aktif' {batas}
+             WHERE b.status = 'aktif' {batas} {saring}
              GROUP BY w.id, b.tahapan_kode ORDER BY w.urutan""",
         tuple(p),
     )
@@ -104,9 +128,11 @@ def rekap_tahapan(wilayah_id=None, pengguna=None) -> dict:
             "total_aktif": sum(b["aktif"] for b in corong)}
 
 
-def rekap_potensi_kecamatan(pengguna=None, wilayah_id=None) -> list[dict]:
+def rekap_potensi_kecamatan(pengguna=None, wilayah_id=None,
+                            prioritas=None) -> list[dict]:
     """Pengganti sheet POTENSI WAKAF: per kecamatan, dipecah Baru / Ada Hak / Isbat."""
     batas, p = _batas(pengguna, wilayah_id)
+    saring = _prioritas(prioritas)
     return db.ambil_semua(
         f"""SELECT k.id, k.nama AS kecamatan, COALESCE(w.nama, '-') AS wilayah,
                    SUM(CASE WHEN {_KELAS_POTENSI} = 'baru' THEN 1 ELSE 0 END) AS baru,
@@ -116,16 +142,18 @@ def rekap_potensi_kecamatan(pengguna=None, wilayah_id=None) -> list[dict]:
               FROM kecamatan k
               LEFT JOIN wilayah w ON w.id = k.wilayah_id
               LEFT JOIN objek_wakaf o
-                     ON o.kecamatan_id = k.id AND o.is_potensi = 1 AND o.is_aktif = 1
+                     ON o.kecamatan_id = k.id AND o.is_potensi = 1
+                        AND o.is_aktif = 1 {saring}
              WHERE 1=1 {batas}
              GROUP BY k.id ORDER BY w.urutan, k.nama""",
         tuple(p),
     )
 
 
-def rekap_wilayah(pengguna=None) -> list[dict]:
+def rekap_wilayah(pengguna=None, prioritas=None) -> list[dict]:
     """Pengganti sheet Total Potensi Wilayah."""
     batas, p = _batas(pengguna)
+    saring = _prioritas(prioritas)
     syarat = " AND w.id = ? " if batas else ""
     return db.ambil_semua(
         f"""SELECT w.id, w.nama AS wilayah,
@@ -136,15 +164,17 @@ def rekap_wilayah(pengguna=None) -> list[dict]:
               FROM wilayah w
               LEFT JOIN kecamatan k ON k.wilayah_id = w.id
               LEFT JOIN objek_wakaf o
-                     ON o.kecamatan_id = k.id AND o.is_potensi = 1 AND o.is_aktif = 1
+                     ON o.kecamatan_id = k.id AND o.is_potensi = 1
+                        AND o.is_aktif = 1 {saring}
              WHERE 1=1 {syarat}
              GROUP BY w.id ORDER BY w.urutan""",
         tuple(p),
     )
 
 
-def rekap_tipologi(kecamatan_id=None, pengguna=None) -> list[dict]:
+def rekap_tipologi(kecamatan_id=None, pengguna=None, prioritas=None) -> list[dict]:
     batas, p = _batas(pengguna)
+    saring = _prioritas(prioritas)
     syarat, params = "", list(p)
     if kecamatan_id:
         syarat = " AND o.kecamatan_id = ? "
@@ -153,7 +183,8 @@ def rekap_tipologi(kecamatan_id=None, pengguna=None) -> list[dict]:
         f"""SELECT t.kode, t.nama, t.kategori, t.kompleksitas, t.urutan,
                    COUNT(o.id) AS jumlah
               FROM tipologi t
-              LEFT JOIN objek_wakaf o ON o.tipologi_kode = t.kode AND o.is_aktif = 1
+              LEFT JOIN objek_wakaf o
+                     ON o.tipologi_kode = t.kode AND o.is_aktif = 1 {saring}
               LEFT JOIN kecamatan k ON k.id = o.kecamatan_id
              WHERE 1=1 {batas} {syarat}
              GROUP BY t.kode ORDER BY t.urutan""",
@@ -161,11 +192,12 @@ def rekap_tipologi(kecamatan_id=None, pengguna=None) -> list[dict]:
     )
 
 
-def tipologi_kosong(kecamatan_id=None, pengguna=None) -> int:
+def tipologi_kosong(kecamatan_id=None, pengguna=None, prioritas=None) -> int:
     batas, p = _batas(pengguna)
-    syarat, params = "", list(p)
+    syarat = _prioritas(prioritas)
+    params = list(p)
     if kecamatan_id:
-        syarat = " AND o.kecamatan_id = ? "
+        syarat += " AND o.kecamatan_id = ? "
         params.append(kecamatan_id)
     return db.ambil_nilai(
         f"""SELECT COUNT(*) FROM objek_wakaf o
@@ -175,9 +207,10 @@ def tipologi_kosong(kecamatan_id=None, pengguna=None) -> int:
     )
 
 
-def rekap_penyerahan(tanggal_target: str, pengguna=None) -> dict:
+def rekap_penyerahan(tanggal_target: str, pengguna=None, prioritas=None) -> dict:
     """Pengganti sheet 'Penyerahan 24 Sept': per wilayah, dipivot per jenis permohonan."""
     batas, p = _batas(pengguna)
+    batas += _prioritas(prioritas)
     baris = db.ambil_semua(
         f"""SELECT COALESCE(w.nama, '(tanpa wilayah)') AS wilayah,
                    b.jenis_permohonan_kode AS jenis, COUNT(*) AS jumlah
@@ -201,9 +234,11 @@ def rekap_penyerahan(tanggal_target: str, pengguna=None) -> dict:
             "total": sum(i["total"] for i in pivot.values())}
 
 
-def berkas_macet(hari: int = 14, pengguna=None, wilayah_id=None) -> list[dict]:
+def berkas_macet(hari: int = 14, pengguna=None, wilayah_id=None,
+                 prioritas=None) -> list[dict]:
     """Berkas aktif yang tidak bergerak melebihi N hari (atau melebihi sla_hari)."""
     batas, p = _batas(pengguna, wilayah_id)
+    batas += _prioritas(prioritas)
     return db.ambil_semua(
         f"""SELECT b.id, b.no_berkas, o.nama_objek, o.kode AS objek_kode,
                    k.nama AS kecamatan_nama, w.nama AS wilayah_nama,
@@ -227,8 +262,9 @@ def berkas_macet(hari: int = 14, pengguna=None, wilayah_id=None) -> list[dict]:
     )
 
 
-def ringkasan_dashboard(pengguna=None) -> dict:
+def ringkasan_dashboard(pengguna=None, prioritas=None) -> dict:
     batas, p = _batas(pengguna)
+    batas += _prioritas(prioritas)
     objek = db.ambil_satu(
         f"""SELECT COUNT(*) AS total,
                    SUM(CASE WHEN o.is_potensi = 1 THEN 1 ELSE 0 END) AS potensi,

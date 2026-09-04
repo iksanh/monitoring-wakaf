@@ -1,6 +1,7 @@
 {% extends "layout.html" %}
 {% block judul %}Rekap Potensi{% endblock %}
 {% block isi %}
+{% include "komponen/nav_rekap.html" %}
 <h1>Total Potensi Sertipikat Wakaf</h1>
 <form method="get" class="saring">
   <select name="wilayah_id">
@@ -9,6 +10,7 @@
     <option value="{{ w.id }}" {{ 'selected' if wilayah_id == w.id }}>{{ w.nama }}</option>
     {% endfor %}
   </select>
+  {% include "komponen/saring_prioritas.html" %}
   <button class="tombol">Tampilkan</button>
 </form>
 <p class="lemah"><a href="/laporan/rekap-potensi.xlsx">Unduh Excel</a> ·

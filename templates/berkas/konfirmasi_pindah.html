@@ -5,8 +5,8 @@
 <div class="notif notif-ingat">{{ halangan }}</div>
 {% if galat %}<div class="notif notif-galat">{{ galat }}</div>{% endif %}
 
-<p>Berkas <strong>{{ berkas.nama_objek }}</strong> akan dipindahkan ke tahapan
-  <strong>{{ tahapan_kode }}</strong>. Anda boleh melanjutkan, tetapi alasannya
+<p>Berkas <strong>{{ berkas.nama_objek }}</strong> akan masuk tahapan
+  <strong>{{ tujuan_nama }}</strong>. Anda boleh melanjutkan, tetapi alasannya
   wajib ditulis dan akan tercatat di riwayat.</p>
 
 <form method="post" action="/berkas/{{ berkas.id }}/pindah" class="kartu">

@@ -1,10 +1,12 @@
 {% extends "layout.html" %}
 {% block judul %}Berkas Macet{% endblock %}
 {% block isi %}
+{% include "komponen/nav_rekap.html" %}
 <h1>Berkas Macet</h1>
 <form method="get" class="saring">
   <label class="penuh" for="hari">Batas diam (hari) — dipakai kalau tahapan belum punya SLA</label>
   <input id="hari" type="number" name="hari" value="{{ hari }}" min="1">
+  {% include "komponen/saring_prioritas.html" %}
   <button class="tombol">Tampilkan</button>
 </form>
 <p class="lemah">{{ baris | length }} berkas melewati batas.</p>

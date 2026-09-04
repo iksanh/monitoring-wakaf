@@ -13,6 +13,8 @@
     <td>{{ LABEL_PERAN.get(b.peran, b.peran) }}</td><td>{{ b.wilayah }}</td>
     <td>{{ 'Ya' if b.aktif else 'Tidak' }}</td>
     <td>
+      <a class="tombol tombol-lain tombol-kecil"
+         href="/master/pengguna/{{ b.id }}/ubah">Ubah</a>
       <form method="post" style="display:inline"
             data-konfirmasi="Ubah status akun {{ b.username }}?">
         <input type="hidden" name="aksi" value="aktif">

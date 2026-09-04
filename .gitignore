@@ -1,5 +1,6 @@
 venv/
 *.db
+*.db.cadangan-*
 *.db-wal
 *.db-shm
 data_master/

@@ -1,9 +1,11 @@
 {% extends "layout.html" %}
 {% block judul %}Rekap Penyerahan{% endblock %}
 {% block isi %}
+{% include "komponen/nav_rekap.html" %}
 <h1>Rekap Penyerahan</h1>
 <form method="get" class="saring">
   <input type="date" name="tanggal" value="{{ tanggal }}">
+  {% include "komponen/saring_prioritas.html" %}
   <button class="tombol">Tampilkan</button>
 </form>
 <p class="lemah">Berkas di tahapan Penyerahan dengan target atau tanggal selesai

@@ -24,18 +24,26 @@ async def pindah(request):
     catatan = web.teks_atau_none(form.get("catatan"))
     paksa = bool(form.get("paksa"))
 
-    halangan = svc_ceklis.halangan_pindah(berkas["id"], tahapan_kode)
-    if halangan and not paksa:
-        return web.render(request, "berkas/konfirmasi_pindah.html", {
+    if aksi not in svc.AKSI_SAH:
+        return PlainTextResponse("400 — Aksi tidak dikenal.", 400)
+
+    # Ceklis diperiksa terhadap tahapan tempat berkas akan berada sesudahnya,
+    # bukan terhadap tahapan yang sedang diselesaikan.
+    tujuan = svc.tujuan_akhir(berkas, tahapan_kode, aksi)
+    halangan = svc_ceklis.halangan_pindah(berkas["id"], tujuan)
+    if halangan:
+        konteks = {
             "berkas": berkas, "tahapan_kode": tahapan_kode, "aksi": aksi,
             "tanggal": tanggal, "catatan": catatan, "halangan": halangan,
-        }, status=400)
-    if halangan and paksa and not catatan:
-        return web.render(request, "berkas/konfirmasi_pindah.html", {
-            "berkas": berkas, "tahapan_kode": tahapan_kode, "aksi": aksi,
-            "tanggal": tanggal, "catatan": catatan, "halangan": halangan,
-            "galat": "Lanjut paksa wajib disertai alasan tertulis.",
-        }, status=400)
+            "tujuan_nama": svc.nama_tahapan(tujuan),
+        }
+        if not paksa:
+            return web.render(request, "berkas/konfirmasi_pindah.html",
+                              konteks, status=400)
+        if not catatan:
+            konteks["galat"] = "Lanjut paksa wajib disertai alasan tertulis."
+            return web.render(request, "berkas/konfirmasi_pindah.html",
+                              konteks, status=400)
 
     try:
         svc.pindah(berkas["id"], tahapan_kode, aksi=aksi, tanggal=tanggal,

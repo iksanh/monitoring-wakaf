@@ -1,7 +1,8 @@
 {% extends "layout.html" %}
 {% block judul %}{{ objek.nama_objek }}{% endblock %}
 {% block isi %}
-<h1>{{ objek.nama_objek }}</h1>
+<h1>{{ objek.nama_objek }}
+  {% with aktif = objek.is_prioritas %}{% include "komponen/lencana_prioritas.html" %}{% endwith %}</h1>
 <p class="lemah">{{ objek.kode }} · {{ objek.desa_nama | kosong }}, {{ objek.kecamatan_nama }}
   {% if objek.wilayah_nama %}· {{ objek.wilayah_nama }}{% endif %}</p>
 
@@ -9,7 +10,10 @@
   {% if pengguna.peran != 'pimpinan' %}
   <a class="tombol" href="/objek/{{ objek.id }}/ubah">Ubah</a>
   {% endif %}
-  {% if pengguna.peran in ('admin','sekretariat','korwil') %}
+  {% set berkas_ada = berkas | rejectattr('status', 'equalto', 'batal') | list | first %}
+  {% if berkas_ada %}
+  <a class="tombol tombol-lain" href="/berkas/{{ berkas_ada.id }}">Lihat Berkas</a>
+  {% elif pengguna.peran in ('admin','sekretariat','korwil') %}
   <a class="tombol tombol-lain" href="/objek/{{ objek.id }}/berkas/baru">Buat Berkas</a>
   {% endif %}
   {% if objek.url_maps %}
@@ -36,6 +40,10 @@
   {{ baris('Kecamatan KKP', objek.kecamatan_kkp) }}
   {{ baris('Desa KKP', objek.desa_kkp) }}
   {{ baris('RTRW', objek.rtrw) }}
+  <div class="kartu-baris"><dt>Prioritas</dt>
+    <dd>{{ 'Ya' if objek.is_prioritas else 'Tidak' }}</dd></div>
+  <div class="kartu-baris"><dt>Perlu Isbat</dt>
+    <dd>{{ 'Ya — lewat Pengadilan Agama' if objek.perlu_isbat else 'Tidak' }}</dd></div>
   {{ baris('Rekomendasi Isbat', objek.rekomendasi_isbat) }}
   {{ baris('Status Sertipikat', objek.status_sertipikat) }}
   {{ baris('Potensi', 'Ya' if objek.is_potensi else 'Tidak') }}

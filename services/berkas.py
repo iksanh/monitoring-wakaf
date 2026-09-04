@@ -5,7 +5,8 @@ from auth import PERAN_TERBATAS_WILAYAH
 from services import audit, ceklis, tahapan as svc_tahapan
 
 _PILIH = """
-    SELECT b.*, o.nama_objek, o.kode AS objek_kode, o.kecamatan_id,
+    SELECT b.*, o.nama_objek, o.kode AS objek_kode, o.kecamatan_id, o.perlu_isbat,
+           o.is_prioritas,
            k.nama AS kecamatan_nama, w.id AS wilayah_id, w.nama AS wilayah_nama,
            t.nama AS tahapan_nama, t.urutan AS tahapan_urutan, t.sla_hari,
            j.nama AS jenis_nama, p.nama AS petugas_nama,
@@ -19,6 +20,10 @@ _PILIH = """
       JOIN jenis_permohonan j ON j.kode = b.jenis_permohonan_kode
       LEFT JOIN pengguna p ON p.id = b.petugas_id
 """
+
+
+class BerkasGanda(Exception):
+    """Objek ini sudah punya berkas — tidak boleh dibuatkan berkas kedua."""
 
 
 def batas_wilayah(pengguna) -> tuple[str, list]:
@@ -54,6 +59,14 @@ def cari(pengguna, saring: dict, halaman: int = 1,
     if saring.get("status"):
         syarat.append("b.status = ?")
         params.append(saring["status"])
+    else:
+        # Berkas yang dibatalkan keluar dari daftar — objeknya sudah kembali
+        # jadi objek wakaf biasa. Masih bisa dilihat lewat filter Status = Batal.
+        syarat.append("b.status <> 'batal'")
+    if saring.get("prioritas") == "ya":
+        syarat.append("o.is_prioritas = 1")
+    elif saring.get("prioritas") == "tidak":
+        syarat.append("o.is_prioritas = 0")
     if saring.get("q"):
         syarat.append("(o.nama_objek LIKE ? OR b.no_berkas LIKE ?)")
         params += [f"%{saring['q']}%"] * 2
@@ -70,7 +83,9 @@ def cari(pengguna, saring: dict, halaman: int = 1,
         tuple(params), 0,
     )
     baris = db.ambil_semua(
-        _PILIH + where + " ORDER BY t.urutan, b.tanggal_daftar DESC, b.id DESC LIMIT ? OFFSET ?",
+        _PILIH + where
+        + """ ORDER BY o.is_prioritas DESC, t.urutan,
+                       b.tanggal_daftar DESC, b.id DESC LIMIT ? OFFSET ?""",
         tuple(params) + (per_halaman, (max(1, halaman) - 1) * per_halaman),
     )
     return {"baris": baris, "total": total, "halaman": max(1, halaman),
@@ -86,19 +101,57 @@ def per_objek(objek_id: int) -> list[dict]:
                           (objek_id,))
 
 
+def tahapan_awal(tanggal_daftar) -> str:
+    """Berkas yang belum punya tanggal daftar berarti belum masuk loket KKP."""
+    return "permohonan" if (tanggal_daftar or "").strip() else "pra_daftar"
+
+
+def berkas_penghalang(objek_id: int, kon=None) -> dict | None:
+    """Berkas yang membuat objek ini tidak boleh dibuatkan berkas lagi.
+
+    Satu objek wakaf = satu berkas permohonan. Berkas berstatus 'batal' tidak
+    menghalangi, supaya objek yang permohonannya dibatalkan masih bisa
+    didaftarkan ulang. Database menegakkan aturan yang sama lewat indeks unik
+    parsial idx_berkas_satu_per_objek (migrasi 006).
+    """
+    sql = """SELECT b.id, b.no_berkas, b.jenis_permohonan_kode, b.tahapan_kode,
+                    b.status, j.nama AS jenis_nama, t.nama AS tahapan_nama
+               FROM berkas b
+               JOIN jenis_permohonan j ON j.kode = b.jenis_permohonan_kode
+               JOIN tahapan t ON t.kode = b.tahapan_kode
+              WHERE b.objek_wakaf_id = ? AND b.status <> 'batal'
+              ORDER BY b.id LIMIT 1"""
+    if kon is None:
+        return db.ambil_satu(sql, (objek_id,))
+    baris = kon.execute(sql, (objek_id,)).fetchone()
+    return dict(baris) if baris else None
+
+
 def buat(data: dict, pengguna_id: int) -> int:
     """Buat berkas baru, salin ceklis syarat, dan catat tahapan pertama."""
-    tahapan_awal = db.ambil_satu("SELECT kode FROM tahapan ORDER BY urutan LIMIT 1")
+    tanggal_daftar = (data.get("tanggal_daftar") or "").strip() or None
+    awal = tahapan_awal(tanggal_daftar)
+    tanggal_gerak = tanggal_daftar or config.hari_ini_iso()
     kon = db.koneksi()
     try:
-        kon.execute("BEGIN")
+        # IMMEDIATE: kunci penulis sejak awal supaya dua permintaan bersamaan
+        # tidak sama-sama lolos pemeriksaan duplikat di bawah ini.
+        kon.execute("BEGIN IMMEDIATE")
+        ada = berkas_penghalang(data["objek_wakaf_id"], kon)
+        if ada:
+            raise BerkasGanda(
+                f"Objek ini sudah punya berkas "
+                f"({ada['no_berkas'] or 'tanpa nomor'} — {ada['jenis_nama']}, "
+                f"{ada['tahapan_nama']}). Satu objek wakaf hanya boleh punya "
+                f"satu berkas permohonan."
+            )
         kur = kon.execute(
             """INSERT INTO berkas (no_berkas, objek_wakaf_id, jenis_permohonan_kode,
                                    tahapan_kode, status, tanggal_daftar,
                                    target_penyerahan, petugas_id, catatan)
                VALUES (?, ?, ?, ?, 'aktif', ?, ?, ?, ?)""",
             (data.get("no_berkas"), data["objek_wakaf_id"], data["jenis_permohonan_kode"],
-             tahapan_awal["kode"], data.get("tanggal_daftar") or config.hari_ini_iso(),
+             awal, tanggal_daftar,
              data.get("target_penyerahan"), data.get("petugas_id"), data.get("catatan")),
         )
         berkas_id = kur.lastrowid
@@ -107,8 +160,7 @@ def buat(data: dict, pengguna_id: int) -> int:
             """INSERT INTO riwayat_tahapan
                    (berkas_id, tahapan_kode, aksi, tanggal, catatan, oleh_pengguna_id)
                VALUES (?, ?, 'masuk', ?, 'Berkas dibuat.', ?)""",
-            (berkas_id, tahapan_awal["kode"],
-             data.get("tanggal_daftar") or config.hari_ini_iso(), pengguna_id),
+            (berkas_id, awal, tanggal_gerak, pengguna_id),
         )
         audit.catat(kon, pengguna_id, "buat", "berkas", berkas_id, None, dict(data))
         kon.commit()

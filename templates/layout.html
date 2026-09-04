@@ -5,11 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>{% block judul %}Sertipikasi Wakaf{% endblock %} · Wakaf Bonbol</title>
   <link rel="stylesheet" href="/static/css/app.css">
+  <link rel="stylesheet" href="/static/css/langkah.css">
   <meta name="theme-color" content="#0b6b3a">
 </head>
 <body class="{{ 'app' if pengguna else 'tamu' }}">
 
 {% if pengguna %}
+{% include "komponen/ikon.html" %}
+
 <header class="bar-atas">
   <button class="tombol-menu" id="tombol-menu" aria-label="Menu">☰</button>
   <a class="merek" href="/">Wakaf<span>Bonbol</span></a>
@@ -20,21 +23,21 @@
 </header>
 
 <nav class="samping" id="samping">
-  <a href="/" class="{{ 'aktif' if request.url.path == '/' }}">Beranda</a>
-  <a href="/objek" class="{{ 'aktif' if request.url.path.startswith('/objek') }}">Objek Wakaf</a>
-  <a href="/berkas" class="{{ 'aktif' if request.url.path.startswith('/berkas') }}">Berkas</a>
-  <a href="/rekap/harian" class="{{ 'aktif' if request.url.path.startswith('/rekap') }}">Rekap</a>
-  <a href="/sosialisasi" class="{{ 'aktif' if request.url.path.startswith('/sosialisasi') }}">Sosialisasi</a>
+  <a href="/" class="{{ 'aktif' if request.url.path == '/' }}"><svg class="ikon" aria-hidden="true"><use href="#ikon-beranda"></use></svg><span>Beranda</span></a>
+  <a href="/objek" class="{{ 'aktif' if request.url.path.startswith('/objek') }}"><svg class="ikon" aria-hidden="true"><use href="#ikon-objek"></use></svg><span>Objek Wakaf</span></a>
+  <a href="/berkas" class="{{ 'aktif' if request.url.path.startswith('/berkas') }}"><svg class="ikon" aria-hidden="true"><use href="#ikon-berkas"></use></svg><span>Berkas</span></a>
+  <a href="/rekap/harian" class="{{ 'aktif' if request.url.path.startswith('/rekap') }}"><svg class="ikon" aria-hidden="true"><use href="#ikon-rekap"></use></svg><span>Rekap</span></a>
+  <a href="/sosialisasi" class="{{ 'aktif' if request.url.path.startswith('/sosialisasi') }}"><svg class="ikon" aria-hidden="true"><use href="#ikon-sosialisasi"></use></svg><span>Sosialisasi</span></a>
   {% if pengguna.peran in ('admin','sekretariat') %}
-  <a href="/laporan" class="{{ 'aktif' if request.url.path.startswith('/laporan') }}">Laporan</a>
+  <a href="/laporan" class="{{ 'aktif' if request.url.path.startswith('/laporan') }}"><svg class="ikon" aria-hidden="true"><use href="#ikon-laporan"></use></svg><span>Laporan</span></a>
   {% endif %}
   {% if pengguna.peran == 'admin' %}
-  <a href="/master/tim" class="{{ 'aktif' if request.url.path.startswith('/master') }}">Master &amp; Tim</a>
-  <a href="/impor" class="{{ 'aktif' if request.url.path.startswith('/impor') }}">Impor</a>
+  <a href="/master/tim" class="{{ 'aktif' if request.url.path.startswith('/master') }}"><svg class="ikon" aria-hidden="true"><use href="#ikon-master"></use></svg><span>Master &amp; Tim</span></a>
+  <a href="/impor" class="{{ 'aktif' if request.url.path.startswith('/impor') }}"><svg class="ikon" aria-hidden="true"><use href="#ikon-impor"></use></svg><span>Impor</span></a>
   {% endif %}
   <hr>
-  <a href="/ganti-sandi">Ganti Sandi</a>
-  <a href="/keluar">Keluar</a>
+  <a href="/ganti-sandi"><svg class="ikon" aria-hidden="true"><use href="#ikon-sandi"></use></svg><span>Ganti Sandi</span></a>
+  <a href="/keluar"><svg class="ikon" aria-hidden="true"><use href="#ikon-keluar"></use></svg><span>Keluar</span></a>
 </nav>
 {% endif %}
 
@@ -45,10 +48,10 @@
 
 {% if pengguna %}
 <nav class="bawah">
-  <a href="/" class="{{ 'aktif' if request.url.path == '/' }}"><span>◉</span>Beranda</a>
-  <a href="/objek" class="{{ 'aktif' if request.url.path.startswith('/objek') }}"><span>▤</span>Objek</a>
-  <a href="/berkas" class="{{ 'aktif' if request.url.path.startswith('/berkas') }}"><span>▤</span>Berkas</a>
-  <a href="/rekap/harian" class="{{ 'aktif' if request.url.path.startswith('/rekap') }}"><span>▦</span>Rekap</a>
+  <a href="/" class="{{ 'aktif' if request.url.path == '/' }}"><svg class="ikon" aria-hidden="true"><use href="#ikon-beranda"></use></svg><span>Beranda</span></a>
+  <a href="/objek" class="{{ 'aktif' if request.url.path.startswith('/objek') }}"><svg class="ikon" aria-hidden="true"><use href="#ikon-objek"></use></svg><span>Objek</span></a>
+  <a href="/berkas" class="{{ 'aktif' if request.url.path.startswith('/berkas') }}"><svg class="ikon" aria-hidden="true"><use href="#ikon-berkas"></use></svg><span>Berkas</span></a>
+  <a href="/rekap/harian" class="{{ 'aktif' if request.url.path.startswith('/rekap') }}"><svg class="ikon" aria-hidden="true"><use href="#ikon-rekap"></use></svg><span>Rekap</span></a>
 </nav>
 {% endif %}
 

@@ -21,9 +21,11 @@
 
   <label for="no_berkas">Nomor Berkas (loket KKP, boleh dikosongkan)</label>
   <input id="no_berkas" name="no_berkas" value="{{ nilai.no_berkas or '' }}">
-  <label for="tanggal_daftar">Tanggal Daftar</label>
+  <label for="tanggal_daftar">Tanggal Daftar Loket</label>
   <input id="tanggal_daftar" name="tanggal_daftar" type="date"
-         value="{{ nilai.tanggal_daftar or hari_ini }}">
+         value="{{ nilai.tanggal_daftar or '' }}">
+  <p class="lemah">Kosongkan bila berkas belum didaftarkan di loket KKP — berkas
+    akan masuk tahapan “Akan Didaftar”.</p>
   <label for="target_penyerahan">Target Penyerahan</label>
   <input id="target_penyerahan" name="target_penyerahan" type="date"
          value="{{ nilai.target_penyerahan or '' }}">

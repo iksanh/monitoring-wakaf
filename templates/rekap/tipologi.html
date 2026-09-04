@@ -1,6 +1,7 @@
 {% extends "layout.html" %}
 {% block judul %}Rekap Tipologi{% endblock %}
 {% block isi %}
+{% include "komponen/nav_rekap.html" %}
 <h1>Sebaran Tipologi Permasalahan</h1>
 <form method="get" class="saring">
   <select name="kecamatan_id">
@@ -9,6 +10,7 @@
     <option value="{{ k.id }}" {{ 'selected' if kecamatan_id == k.id }}>{{ k.nama }}</option>
     {% endfor %}
   </select>
+  {% include "komponen/saring_prioritas.html" %}
   <button class="tombol">Tampilkan</button>
 </form>
 

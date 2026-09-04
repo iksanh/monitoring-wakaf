@@ -1,6 +1,7 @@
 {% extends "layout.html" %}
 {% block judul %}Rekap Harian{% endblock %}
 {% block isi %}
+{% include "komponen/nav_rekap.html" %}
 <h1>Rekap Harian</h1>
 <form method="get" class="saring">
   <input type="date" name="tanggal" value="{{ tanggal }}">
@@ -10,6 +11,7 @@
     <option value="{{ w.id }}" {{ 'selected' if wilayah_id == w.id }}>{{ w.nama }}</option>
     {% endfor %}
   </select>
+  {% include "komponen/saring_prioritas.html" %}
   <button class="tombol penuh">Tampilkan</button>
 </form>
 

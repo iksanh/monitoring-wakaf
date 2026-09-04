@@ -1,7 +1,8 @@
 {% extends "layout.html" %}
 {% block judul %}Berkas {{ berkas.no_berkas or berkas.id }}{% endblock %}
 {% block isi %}
-<h1>{{ berkas.nama_objek }}</h1>
+<h1>{{ berkas.nama_objek }}
+  {% with aktif = berkas.is_prioritas %}{% include "komponen/lencana_prioritas.html" %}{% endwith %}</h1>
 <p class="lemah">
   {{ berkas.no_berkas | default('Berkas #' ~ berkas.id, true) }} ·
   {{ berkas.kecamatan_nama }} · {{ berkas.wilayah_nama | kosong }}
@@ -25,30 +26,148 @@
   {% endif %}
 </div>
 
-{% if pengguna.peran in ('admin','sekretariat','korwil') %}
-<h2>Pindah Tahapan</h2>
-<form method="post" action="/berkas/{{ berkas.id }}/pindah" class="kartu">
-  <label for="tahapan_kode">Tahapan tujuan</label>
-  <select id="tahapan_kode" name="tahapan_kode" required>
-    {% for t in tahapan %}
-    <option value="{{ t.kode }}"
-      {{ 'selected' if berikutnya and t.kode == berikutnya.kode }}>{{ t.urutan }} — {{ t.nama }}</option>
+<h2>Tahapan</h2>
+<div class="kartu">
+  <ol class="stepper">
+    {% for t in alur %}
+    <li class="langkah langkah-{{ t.posisi }}">
+      <span class="langkah-titik">{{ '✓' if t.posisi == 'lewat' else '' }}</span>
+      <span class="langkah-nama">{{ t.nama }}</span>
+    </li>
     {% endfor %}
-  </select>
-  <label for="aksi">Aksi</label>
-  <select id="aksi" name="aksi">
-    <option value="masuk">Masuk tahapan</option>
-    <option value="selesai">Selesai di tahapan</option>
-    <option value="kendala">Catat kendala (posisi tidak berubah)</option>
-    <option value="mundur">Mundur (wajib beralasan)</option>
-  </select>
+  </ol>
+</div>
+
+{% set boleh_gerak = pengguna.peran in ('admin','sekretariat','korwil') %}
+{% if boleh_gerak and berkas.status == 'aktif' %}
+<form method="post" action="/berkas/{{ berkas.id }}/pindah" class="kartu">
+  <input type="hidden" name="tahapan_kode" value="{{ berkas.tahapan_kode }}">
+  <input type="hidden" name="aksi" value="selesai">
+  <button class="tombol tombol-penuh tombol-langkah">
+    <span class="langkah-aksi">Selesaikan {{ berkas.tahapan_nama }}</span>
+    <span class="langkah-akibat">
+      {%- if berikutnya %}lanjut ke {{ berikutnya.nama }}
+      {%- else %}berkas ditutup, tidak ada tahapan lagi{% endif -%}
+    </span>
+  </button>
   <label for="tanggal">Tanggal kejadian</label>
   <input id="tanggal" name="tanggal" type="date" value="{{ hari_ini }}">
-  <p class="lemah">Boleh diisi mundur kalau input dilakukan sehari setelah kejadian.</p>
-  <label for="catatan">Catatan</label>
-  <textarea id="catatan" name="catatan"></textarea>
-  <div class="aksi"><button class="tombol">Catat Pergerakan</button></div>
+  <p class="lemah">Sudah terisi hari ini. Ubah kalau kejadiannya kemarin.</p>
 </form>
+{% elif berkas.status == 'batal' %}
+<div class="notif notif-galat">
+  <strong>Pendaftaran dibatalkan</strong>{% if berkas.tanggal_batal %}
+  pada {{ berkas.tanggal_batal | tanggal }}{% endif %}.
+  {% if berkas.alasan_batal %}<br>Alasan: {{ berkas.alasan_batal }}{% endif %}
+  <br>Objeknya sudah kembali jadi objek wakaf biasa dan bisa dibuatkan berkas baru.
+</div>
+{% elif berkas.status != 'aktif' %}
+<div class="kartu"><p class="lemah">Berkas berstatus <strong>{{ berkas.status }}</strong> —
+  tidak ada pergerakan tahapan lagi.</p></div>
+{% endif %}
+
+{% if boleh_gerak and berkas.status == 'aktif' %}
+<details class="kartu aksi-lain">
+  <summary>Aksi lain</summary>
+
+  <h3>Catat kendala</h3>
+  <p class="lemah">Berkas tetap di {{ berkas.tahapan_nama }}, hanya dicatat di riwayat.</p>
+  <form method="post" action="/berkas/{{ berkas.id }}/pindah">
+    <input type="hidden" name="tahapan_kode" value="{{ berkas.tahapan_kode }}">
+    <input type="hidden" name="aksi" value="kendala">
+    <label for="tanggal_kendala">Tanggal</label>
+    <input id="tanggal_kendala" name="tanggal" type="date" value="{{ hari_ini }}">
+    <label for="catatan_kendala">Apa kendalanya *</label>
+    <textarea id="catatan_kendala" name="catatan" required></textarea>
+    <div class="aksi"><button class="tombol tombol-lain">Catat Kendala</button></div>
+  </form>
+
+  {% if mundur_ke %}
+  <h3>Koreksi mundur</h3>
+  <p class="lemah">Hanya tahapan yang sudah dilewati. Alasan wajib dan tercatat.</p>
+  <form method="post" action="/berkas/{{ berkas.id }}/pindah">
+    <input type="hidden" name="aksi" value="mundur">
+    <label for="mundur_kode">Kembalikan ke</label>
+    <select id="mundur_kode" name="tahapan_kode" required>
+      {% for t in mundur_ke | reverse %}
+      <option value="{{ t.kode }}">{{ t.nama }}</option>
+      {% endfor %}
+    </select>
+    <label for="tanggal_mundur">Tanggal</label>
+    <input id="tanggal_mundur" name="tanggal" type="date" value="{{ hari_ini }}">
+    <label for="catatan_mundur">Alasan mundur *</label>
+    <textarea id="catatan_mundur" name="catatan" required></textarea>
+    <div class="aksi"><button class="tombol tombol-bahaya">Mundurkan Berkas</button></div>
+  </form>
+  {% endif %}
+
+  {% if pengguna.peran in ('admin','sekretariat') %}
+  <h3>Batalkan pendaftaran</h3>
+  <p class="lemah">Berkas keluar dari daftar Berkas dan objeknya kembali jadi objek
+    wakaf biasa — bisa dibuatkan berkas baru. Riwayat dan ceklisnya tidak dihapus,
+    masih bisa dilihat lewat filter <em>Status: Batal</em>.</p>
+  <form method="post" action="/berkas/{{ berkas.id }}/batalkan"
+        onsubmit="return confirm('Batalkan pendaftaran berkas ini? Objeknya akan bisa dibuatkan berkas baru.')">
+    <label for="tanggal_batal">Tanggal pembatalan</label>
+    <input id="tanggal_batal" name="tanggal" type="date" value="{{ hari_ini }}">
+    <label for="alasan_batal">Alasan pembatalan *</label>
+    <textarea id="alasan_batal" name="alasan" required></textarea>
+    <div class="aksi">
+      <button class="tombol tombol-bahaya">Batalkan Pendaftaran</button>
+    </div>
+  </form>
+  {% endif %}
+</details>
+{% endif %}
+
+{% if berkas.perlu_isbat %}
+<h2 id="penetapan">Penetapan Isbat</h2>
+{% if not berkas.tanggal_penetapan %}
+<div class="notif notif-ingat">Masih menunggu penetapan Pengadilan Agama.
+  Berkas belum bisa didaftarkan di loket.</div>
+{% endif %}
+{% if pengguna.peran in ('admin','sekretariat','korwil') %}
+<form method="post" action="/berkas/{{ berkas.id }}/penetapan" class="kartu">
+  <p class="lemah">Objek ini ditandai harus lewat isbat. Selama tanggal penetapan
+    masih kosong, berkas terhitung di kolom Penetapan Pengadilan pada papan kendali.</p>
+  <label for="no_penetapan">Nomor penetapan</label>
+  <input id="no_penetapan" name="no_penetapan"
+         value="{{ berkas.no_penetapan or '' }}" placeholder="mis. 12/Pdt.P/2026/PA.Gtlo">
+  <label for="tanggal_penetapan">Tanggal penetapan</label>
+  <input id="tanggal_penetapan" name="tanggal_penetapan" type="date"
+         value="{{ berkas.tanggal_penetapan or '' }}">
+  <p class="lemah">Kosongkan kalau penetapannya belum terbit.</p>
+  <div class="aksi"><button class="tombol">Simpan Penetapan</button></div>
+</form>
+{% else %}
+<div class="kartu">
+  <div class="kartu-baris"><dt>Nomor penetapan</dt>
+    <dd>{{ berkas.no_penetapan | kosong }}</dd></div>
+  <div class="kartu-baris"><dt>Tanggal penetapan</dt>
+    <dd>{{ berkas.tanggal_penetapan | tanggal }}</dd></div>
+</div>
+{% endif %}
+{% endif %}
+
+{% if pengguna.peran in ('admin','sekretariat','korwil') %}
+<h2 id="tarikan">Catatan Ditarik</h2>
+<form method="post" action="/berkas/{{ berkas.id }}/tarikan" class="kartu">
+  <p class="lemah">Sertipikat / warkah yang sudah ditarik dari pemegang hak untuk
+    dicatat wakafnya. Dihitung di papan kendali korwil.</p>
+  <label for="catatan_ditarik">Status</label>
+  <select id="catatan_ditarik" name="catatan_ditarik">
+    <option value="0" {{ 'selected' if not berkas.catatan_ditarik }}>Belum ditarik</option>
+    <option value="1" {{ 'selected' if berkas.catatan_ditarik }}>Sudah ditarik</option>
+  </select>
+  <label for="tanggal_ditarik">Tanggal ditarik</label>
+  <input id="tanggal_ditarik" name="tanggal_ditarik" type="date"
+         value="{{ berkas.tanggal_ditarik or hari_ini }}">
+  <div class="aksi"><button class="tombol">Simpan</button></div>
+</form>
+{% elif berkas.catatan_ditarik %}
+<h2 id="tarikan">Catatan Ditarik</h2>
+<div class="kartu"><div class="kartu-baris"><dt>Ditarik pada</dt>
+  <dd>{{ berkas.tanggal_ditarik | tanggal }}</dd></div></div>
 {% endif %}
 
 <h2 id="ceklis">Ceklis Persyaratan</h2>

@@ -21,7 +21,7 @@ class TesRekap(BasisTes):
         self.o2 = self.buat_objek("Masjid B", "Suwawa", tipologi="T6",
                                   tipe_hak="Hak Milik")
         self.o3 = self.buat_objek("Masjid C", "Bulango Ulu", tipologi="T6",
-                                  rekomendasi_isbat="Isbat")
+                                  perlu_isbat=1)
         self.o4 = self.buat_objek("Masjid D", "Kabila", tipologi=None)
         self.o5 = self.buat_objek("Masjid E", "Kabila", tipologi="T2", status="sudah")
 

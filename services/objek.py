@@ -9,7 +9,7 @@ KOLOM_ISI = (
     "tanggal_aiw", "jenis_alas_hak", "tipe_hak", "nib", "luas_persil",
     "kecamatan_kkp", "desa_kkp", "rtrw", "tipologi_kode", "rekomendasi_isbat",
     "keterangan", "catatan_kua", "latitude", "longitude", "url_maps", "url_dokumen",
-    "status_sertipikat", "is_potensi",
+    "status_sertipikat", "is_potensi", "perlu_isbat", "is_prioritas",
 )
 
 _PILIH = """
@@ -66,6 +66,10 @@ def cari(pengguna, saring: dict, halaman: int = 1,
         syarat.append("o.no_aiw IS NOT NULL AND trim(o.no_aiw) NOT IN ('', '-')")
     elif saring.get("aiw") == "belum":
         syarat.append("(o.no_aiw IS NULL OR trim(o.no_aiw) IN ('', '-'))")
+    if saring.get("prioritas") == "ya":
+        syarat.append("o.is_prioritas = 1")
+    elif saring.get("prioritas") == "tidak":
+        syarat.append("o.is_prioritas = 0")
     if saring.get("q"):
         syarat.append("(o.nama_objek LIKE ? OR o.nama_wakif LIKE ? OR o.kode LIKE ?)")
         pola = f"%{saring['q']}%"
@@ -83,7 +87,8 @@ def cari(pengguna, saring: dict, halaman: int = 1,
     )
     halaman = max(1, halaman)
     baris = db.ambil_semua(
-        _PILIH + where + " ORDER BY k.nama, o.nama_objek LIMIT ? OFFSET ?",
+        _PILIH + where
+        + " ORDER BY o.is_prioritas DESC, k.nama, o.nama_objek LIMIT ? OFFSET ?",
         tuple(params) + (per_halaman, (halaman - 1) * per_halaman),
     )
     return {

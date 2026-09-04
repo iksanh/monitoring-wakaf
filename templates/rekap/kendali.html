@@ -1,0 +1,115 @@
+{% extends "layout.html" %}
+{% block judul %}Kendali Korwil{% endblock %}
+{% block isi %}
+{% include "komponen/nav_rekap.html" %}
+<h1>Papan Kendali Korwil</h1>
+<p class="lemah">{{ papan.label_periode }}</p>
+
+<form method="get" class="saring">
+  <select name="periode">
+    {% for p in daftar_periode %}
+    <option value="{{ p.kode }}" {{ 'selected' if periode == p.kode }}>{{ p.label }}</option>
+    {% endfor %}
+  </select>
+  <select name="wilayah_id">
+    <option value="">Semua wilayah</option>
+    {% for w in wilayah %}
+    <option value="{{ w.id }}" {{ 'selected' if wilayah_id == w.id }}>{{ w.nama }}</option>
+    {% endfor %}
+  </select>
+  {% include "komponen/saring_prioritas.html" %}
+  <button class="tombol">Tampilkan</button>
+</form>
+
+<div class="petak">
+  <div class="kartu"><div class="petak-nilai">{{ papan.total.total_capaian }}</div>
+    <div class="petak-label">Total capaian {{ papan.label_periode }}</div></div>
+  <div class="kartu"><div class="petak-nilai">{{ papan.total.alih_media }}</div>
+    <div class="petak-label">Alih media selesai</div></div>
+  <div class="kartu"><div class="petak-nilai">{{ papan.total.catatan_ditarik }}</div>
+    <div class="petak-label">Catatan sudah ditarik</div></div>
+  <div class="kartu">
+    <div class="petak-nilai {{ 'nilai-merah' if papan.total.selisih < 0 }}">{{ papan.total.selisih }}</div>
+    <div class="petak-label">Selisih (alih media − ditarik)</div></div>
+</div>
+
+{# --- desktop: tabel persis seperti papan kendali Excel --- #}
+<div class="tabel-bungkus hanya-desktop">
+<table>
+  <tr>
+    <th>Wilayah</th>
+    <th class="angka">Berkas Selesai</th>
+    <th class="angka">Berkas dalam Proses</th>
+    <th class="angka">Berkas akan didaftar</th>
+    <th class="angka">Penetapan Pengadilan</th>
+    <th class="angka">Alih media</th>
+    <th class="angka">Total Capaian</th>
+    <th class="angka">Catatan sudah ditarik</th>
+    <th class="angka">Selisih</th>
+  </tr>
+  {% for b in papan.baris %}
+  <tr>
+    <td>{{ b.wilayah }}</td>
+    <td class="angka"><a href="/berkas?wilayah_id={{ b.id }}&status=selesai">{{ b.selesai }}</a></td>
+    <td class="angka"><a href="/berkas?wilayah_id={{ b.id }}&status=aktif">{{ b.proses }}</a></td>
+    <td class="angka"><a href="/berkas?wilayah_id={{ b.id }}&tahapan_kode=pra_daftar">{{ b.akan_didaftar }}</a></td>
+    <td class="angka"><a href="/berkas?wilayah_id={{ b.id }}&status=aktif">{{ b.penetapan }}</a></td>
+    <td class="angka"><a href="/berkas?wilayah_id={{ b.id }}&jenis_permohonan_kode=alih_media">{{ b.alih_media }}</a></td>
+    <td class="angka"><strong>{{ b.total_capaian }}</strong></td>
+    <td class="angka">{{ b.catatan_ditarik }}</td>
+    <td class="angka {{ 'nilai-merah' if b.selisih < 0 }}">{{ b.selisih }}</td>
+  </tr>
+  {% endfor %}
+  <tr>
+    <th>TOTAL</th>
+    <th class="angka">{{ papan.total.selesai }}</th>
+    <th class="angka">{{ papan.total.proses }}</th>
+    <th class="angka">{{ papan.total.akan_didaftar }}</th>
+    <th class="angka">{{ papan.total.penetapan }}</th>
+    <th class="angka">{{ papan.total.alih_media }}</th>
+    <th class="angka">{{ papan.total.total_capaian }}</th>
+    <th class="angka">{{ papan.total.catatan_ditarik }}</th>
+    <th class="angka {{ 'nilai-merah' if papan.total.selisih < 0 }}">{{ papan.total.selisih }}</th>
+  </tr>
+</table>
+</div>
+
+{# --- mobile: satu kartu per wilayah --- #}
+<div class="hanya-mobile">
+  {% for b in papan.baris %}
+  <div class="kartu">
+    <div class="kartu-judul">{{ b.wilayah }}
+      <span class="lencana {{ 't-merah' if b.selisih < 0 else 't-hijau' }}">selisih {{ b.selisih }}</span>
+    </div>
+    <div class="kartu-baris"><dt>Berkas selesai</dt><dd>{{ b.selesai }}</dd></div>
+    <div class="kartu-baris"><dt>Dalam proses</dt><dd>{{ b.proses }}</dd></div>
+    <div class="kartu-baris"><dt>Akan didaftar</dt><dd>{{ b.akan_didaftar }}</dd></div>
+    <div class="kartu-baris"><dt>Penetapan pengadilan</dt><dd>{{ b.penetapan }}</dd></div>
+    <div class="kartu-baris"><dt>Alih media</dt><dd>{{ b.alih_media }}</dd></div>
+    <div class="kartu-baris"><dt>Catatan sudah ditarik</dt><dd>{{ b.catatan_ditarik }}</dd></div>
+    <div class="kartu-baris"><dt><strong>Total capaian</strong></dt>
+      <dd><strong>{{ b.total_capaian }}</strong></dd></div>
+  </div>
+  {% endfor %}
+</div>
+
+<h2>Cara Angka Ini Dihitung</h2>
+<div class="kartu lemah">
+  <p><strong>Total Capaian</strong> = Berkas Selesai + Dalam Proses + Akan Didaftar +
+     Penetapan Pengadilan + Alih Media. Kelima kolom saling lepas sehingga tidak ada
+     berkas yang dihitung dua kali: alih media hanya di kolomnya sendiri, isbat yang
+     masih berjalan hanya di Penetapan Pengadilan, sisanya di tiga kolom pertama.
+     Isbat yang sudah selesai pindah ke Berkas Selesai supaya capaiannya tidak hilang.</p>
+  <p><strong>Selisih</strong> = Alih Media − Catatan yang sudah ditarik. Angka negatif
+     berarti masih ada sertipikat/warkah yang sudah ditarik tapi belum selesai
+     dialihmediakan — ini tunggakan, bukan kekurangan capaian.</p>
+  <p><strong>Periode.</strong> Berkas Selesai, Alih Media, dan Catatan Ditarik dihitung
+     dari kejadian di bulan yang dipilih. Dalam Proses, Akan Didaftar, dan Penetapan
+     Pengadilan adalah posisi berkas saat ini, bukan kejadian bulanan.</p>
+  <p><strong>Penetapan Pengadilan</strong> = berkas aktif yang objeknya ditandai
+     <em>perlu isbat</em> dan tanggal penetapannya masih kosong — artinya perkaranya
+     masih di Pengadilan Agama. Begitu penetapan diisi di halaman berkas, ia pindah
+     ke Dalam Proses atau Akan Didaftar.</p>
+  <p>Penanda “catatan sudah ditarik” diisi per berkas di halaman detail berkas.</p>
+</div>
+{% endblock %}

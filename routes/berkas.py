@@ -5,7 +5,8 @@ from starlette.routing import Route
 import auth
 import config
 import web
-from services import audit, berkas as svc, ceklis as svc_ceklis
+from services import audit, berkas as svc, berkas_aksi as svc_aksi
+from services import ceklis as svc_ceklis
 from services import dokumen as svc_dokumen, kunjungan as svc_kunjungan
 from services import objek as svc_objek, tahapan as svc_tahapan
 
@@ -19,6 +20,7 @@ async def daftar(request):
         "wilayah_id": web.int_atau(p.get("wilayah_id")),
         "jenis_permohonan_kode": web.teks_atau_none(p.get("jenis_permohonan_kode")),
         "status": web.teks_atau_none(p.get("status")),
+        "prioritas": web.teks_atau_none(p.get("prioritas")),
         "q": web.teks_atau_none(p.get("q")),
     }
     hasil = svc.cari(pengguna, saring, web.int_atau(p.get("hlm"), 1) or 1)
@@ -43,7 +45,8 @@ async def detail(request):
     return web.render(request, "berkas/detail.html", {
         "berkas": berkas,
         "linimasa": svc_tahapan.riwayat(berkas["id"]),
-        "tahapan": svc_tahapan.daftar(),
+        "alur": svc_tahapan.alur(berkas),
+        "mundur_ke": svc_tahapan.sudah_dilewati(berkas),
         "berikutnya": svc.tahapan_berikutnya(berkas),
         "ceklis": svc_ceklis.per_berkas(berkas["id"]),
         "progres": svc_ceklis.progres(berkas["id"]),
@@ -60,6 +63,13 @@ async def baru(request):
         return PlainTextResponse("404 — Objek tidak ditemukan.", 404)
     if not svc_objek.boleh_akses(pengguna, objek):
         return PlainTextResponse("403 — Objek ini di luar wilayah Anda.", 403)
+
+    # Satu objek wakaf = satu berkas. Kalau sudah ada, antar ke berkas itu.
+    ada = svc.berkas_penghalang(objek["id"])
+    if ada:
+        web.pesan(request, "Objek ini sudah punya berkas — dibuka berkas yang ada.")
+        return RedirectResponse(f"/berkas/{ada['id']}", status_code=303)
+
     if request.method == "POST":
         form = await request.form()
         data = {
@@ -77,13 +87,74 @@ async def baru(request):
                 "petugas": svc.daftar_petugas(), "nilai": data,
                 "galat": ["Jenis permohonan wajib dipilih."],
                 "hari_ini": config.hari_ini_iso()}, status=400)
-        berkas_id = svc.buat(data, pengguna["id"])
+        try:
+            berkas_id = svc.buat(data, pengguna["id"])
+        except svc.BerkasGanda as galat:
+            # Bisa kejadian kalau dua orang mengirim form bersamaan.
+            return web.render(request, "berkas/form.html", {
+                "objek": objek, "jenis": svc.daftar_jenis(),
+                "petugas": svc.daftar_petugas(), "nilai": data,
+                "galat": [str(galat)],
+                "hari_ini": config.hari_ini_iso()}, status=409)
         web.pesan(request, "Berkas dibuat. Ceklis syarat sudah disiapkan.")
         return RedirectResponse(f"/berkas/{berkas_id}", status_code=303)
     return web.render(request, "berkas/form.html", {
         "objek": objek, "jenis": svc.daftar_jenis(), "petugas": svc.daftar_petugas(),
-        "nilai": {"tanggal_daftar": config.hari_ini_iso()},
+        "nilai": {},
         "hari_ini": config.hari_ini_iso()})
+
+
+@auth.butuh_peran("admin", "sekretariat")
+async def batalkan(request):
+    """Batalkan pendaftaran: berkas keluar dari daftar, objeknya bebas lagi."""
+    pengguna = request.state.pengguna
+    berkas = svc.ambil(int(request.path_params["id"]))
+    if not berkas or not svc.boleh_akses(pengguna, berkas):
+        return PlainTextResponse("403 — Tidak berhak.", 403)
+    form = await request.form()
+    try:
+        svc_aksi.batalkan(berkas["id"], web.teks_atau_none(form.get("alasan")),
+                          pengguna["id"], web.teks_atau_none(form.get("tanggal")))
+    except svc_aksi.BatalDitolak as galat:
+        web.pesan(request, f"Gagal membatalkan: {galat}")
+        return RedirectResponse(f"/berkas/{berkas['id']}", status_code=303)
+    web.pesan(request, "Pendaftaran dibatalkan. Objeknya bisa dibuatkan berkas baru.")
+    return RedirectResponse(f"/objek/{berkas['objek_wakaf_id']}", status_code=303)
+
+
+@auth.butuh_peran("admin", "sekretariat", "korwil")
+async def penetapan(request):
+    """Catat nomor & tanggal penetapan isbat dari Pengadilan Agama."""
+    pengguna = request.state.pengguna
+    berkas = svc.ambil(int(request.path_params["id"]))
+    if not berkas or not svc.boleh_akses(pengguna, berkas):
+        return PlainTextResponse("403 — Tidak berhak.", 403)
+    if not berkas["perlu_isbat"]:
+        return PlainTextResponse(
+            "400 — Objek ini tidak ditandai perlu isbat.", 400)
+    form = await request.form()
+    svc_aksi.simpan_penetapan(berkas["id"],
+                         web.teks_atau_none(form.get("no_penetapan")),
+                         web.teks_atau_none(form.get("tanggal_penetapan")),
+                         pengguna["id"])
+    web.pesan(request, "Penetapan isbat tersimpan.")
+    return RedirectResponse(f"/berkas/{berkas['id']}#penetapan", status_code=303)
+
+
+@auth.butuh_peran("admin", "sekretariat", "korwil")
+async def tarikan(request):
+    """Tandai sertipikat/warkah berkas ini sudah ditarik (papan kendali korwil)."""
+    pengguna = request.state.pengguna
+    berkas = svc.ambil(int(request.path_params["id"]))
+    if not berkas or not svc.boleh_akses(pengguna, berkas):
+        return PlainTextResponse("403 — Tidak berhak.", 403)
+    form = await request.form()
+    ditarik = form.get("catatan_ditarik") == "1"
+    svc_aksi.tandai_tarikan(berkas["id"], ditarik,
+                       web.teks_atau_none(form.get("tanggal_ditarik")), pengguna["id"])
+    web.pesan(request, "Catatan ditarik diperbarui." if ditarik
+              else "Penanda tarikan dibatalkan.")
+    return RedirectResponse(f"/berkas/{berkas['id']}#tarikan", status_code=303)
 
 
 @auth.butuh_peran("admin", "sekretariat", "korwil")
@@ -167,6 +238,9 @@ rute = [
     Route("/berkas", daftar),
     Route("/berkas/{id:int}", detail),
     Route("/berkas/{id:int}/ceklis", simpan_ceklis, methods=["POST"]),
+    Route("/berkas/{id:int}/tarikan", tarikan, methods=["POST"]),
+    Route("/berkas/{id:int}/penetapan", penetapan, methods=["POST"]),
+    Route("/berkas/{id:int}/batalkan", batalkan, methods=["POST"]),
     Route("/objek/{id:int}/berkas/baru", baru, methods=["GET", "POST"]),
     Route("/objek/{id:int}/dokumen", unggah_dokumen, methods=["POST"]),
     Route("/objek/{id:int}/kunjungan", catat_kunjungan, methods=["POST"]),

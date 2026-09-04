@@ -1,0 +1,47 @@
+{% extends "layout.html" %}
+{% block judul %}Ubah {{ orang.username }}{% endblock %}
+{% block isi %}
+<h1>Ubah Pengguna</h1>
+{% include "komponen/nav_master.html" %}
+<p class="lemah">{{ orang.username }} · {{ 'Aktif' if orang.aktif else 'Nonaktif' }}
+  {% if diri_sendiri %}· <strong>ini akun Anda sendiri</strong>{% endif %}</p>
+
+{% if galat %}<div class="notif notif-galat">{{ galat }}</div>{% endif %}
+{% if diri_sendiri %}
+<div class="notif notif-ingat">Anda sedang mengubah akun sendiri. Menurunkan peran
+  dari Administrator akan langsung menutup akses Anda ke menu Master.</div>
+{% endif %}
+
+<form method="post" class="kartu">
+  <label for="username">Nama Pengguna</label>
+  <input id="username" name="username" value="{{ orang.username }}"
+         required autocapitalize="none">
+  <label for="nama">Nama Lengkap</label>
+  <input id="nama" name="nama" value="{{ orang.nama }}" required>
+  <label for="peran">Peran</label>
+  <select id="peran" name="peran" required>
+    {% for p in peran %}
+    <option value="{{ p }}" {{ 'selected' if orang.peran == p }}>
+      {{ LABEL_PERAN.get(p, p) }}</option>
+    {% endfor %}
+  </select>
+  <label for="wilayah_id">Wilayah (wajib untuk korwil &amp; petugas)</label>
+  <select id="wilayah_id" name="wilayah_id">
+    <option value="">— semua wilayah —</option>
+    {% for w in wilayah %}
+    <option value="{{ w.id }}" {{ 'selected' if orang.wilayah_id == w.id }}>
+      {{ w.nama }}</option>
+    {% endfor %}
+  </select>
+  <p class="lemah">Wilayah otomatis dikosongkan untuk peran selain korwil dan
+    petugas — hanya dua peran itu yang datanya dibatasi wilayah.</p>
+
+  <div class="aksi aksi-lengket">
+    <button class="tombol">Simpan</button>
+    <a class="tombol tombol-lain" href="/master/pengguna">Batal</a>
+  </div>
+</form>
+
+<p class="lemah">Sandi tidak diubah dari sini. Pakai tombol <strong>Reset Sandi</strong>
+  di daftar pengguna — sandi barunya ditampilkan sekali saja.</p>
+{% endblock %}
