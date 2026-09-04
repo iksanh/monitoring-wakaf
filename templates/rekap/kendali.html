@@ -22,8 +22,12 @@
 </form>
 
 <div class="petak">
+  <div class="kartu"><div class="petak-nilai">{{ papan.total.potensi }}</div>
+    <div class="petak-label">Potensi (seluruh objek wakaf)</div></div>
   <div class="kartu"><div class="petak-nilai">{{ papan.total.total_capaian }}</div>
     <div class="petak-label">Total capaian {{ papan.label_periode }}</div></div>
+  <div class="kartu"><div class="petak-nilai">{{ papan.total.siap_serah }}</div>
+    <div class="petak-label">Siap diserahkan</div></div>
   <div class="kartu"><div class="petak-nilai">{{ papan.total.alih_media }}</div>
     <div class="petak-label">Alih media selesai</div></div>
   <div class="kartu"><div class="petak-nilai">{{ papan.total.catatan_ditarik }}</div>
@@ -38,7 +42,9 @@
 <table>
   <tr>
     <th>Wilayah</th>
+    <th class="angka">Potensi</th>
     <th class="angka">Berkas Selesai</th>
+    <th class="angka">Siap Diserahkan</th>
     <th class="angka">Berkas dalam Proses</th>
     <th class="angka">Berkas akan didaftar</th>
     <th class="angka">Penetapan Pengadilan</th>
@@ -50,7 +56,9 @@
   {% for b in papan.baris %}
   <tr>
     <td>{{ b.wilayah }}</td>
+    <td class="angka">{{ b.potensi }}</td>
     <td class="angka"><a href="/berkas?wilayah_id={{ b.id }}&status=selesai">{{ b.selesai }}</a></td>
+    <td class="angka"><a href="/berkas?wilayah_id={{ b.id }}&tahapan_kode=penyerahan">{{ b.siap_serah }}</a></td>
     <td class="angka"><a href="/berkas?wilayah_id={{ b.id }}&status=aktif">{{ b.proses }}</a></td>
     <td class="angka"><a href="/berkas?wilayah_id={{ b.id }}&tahapan_kode=pra_daftar">{{ b.akan_didaftar }}</a></td>
     <td class="angka"><a href="/berkas?wilayah_id={{ b.id }}&status=aktif">{{ b.penetapan }}</a></td>
@@ -62,7 +70,9 @@
   {% endfor %}
   <tr>
     <th>TOTAL</th>
+    <th class="angka">{{ papan.total.potensi }}</th>
     <th class="angka">{{ papan.total.selesai }}</th>
+    <th class="angka">{{ papan.total.siap_serah }}</th>
     <th class="angka">{{ papan.total.proses }}</th>
     <th class="angka">{{ papan.total.akan_didaftar }}</th>
     <th class="angka">{{ papan.total.penetapan }}</th>
@@ -81,7 +91,9 @@
     <div class="kartu-judul">{{ b.wilayah }}
       <span class="lencana {{ 't-merah' if b.selisih < 0 else 't-hijau' }}">selisih {{ b.selisih }}</span>
     </div>
+    <div class="kartu-baris"><dt>Potensi</dt><dd>{{ b.potensi }}</dd></div>
     <div class="kartu-baris"><dt>Berkas selesai</dt><dd>{{ b.selesai }}</dd></div>
+    <div class="kartu-baris"><dt>Siap diserahkan</dt><dd>{{ b.siap_serah }}</dd></div>
     <div class="kartu-baris"><dt>Dalam proses</dt><dd>{{ b.proses }}</dd></div>
     <div class="kartu-baris"><dt>Akan didaftar</dt><dd>{{ b.akan_didaftar }}</dd></div>
     <div class="kartu-baris"><dt>Penetapan pengadilan</dt><dd>{{ b.penetapan }}</dd></div>
@@ -95,17 +107,30 @@
 
 <h2>Cara Angka Ini Dihitung</h2>
 <div class="kartu lemah">
-  <p><strong>Total Capaian</strong> = Berkas Selesai + Dalam Proses + Akan Didaftar +
-     Penetapan Pengadilan + Alih Media. Kelima kolom saling lepas sehingga tidak ada
-     berkas yang dihitung dua kali: alih media hanya di kolomnya sendiri, isbat yang
-     masih berjalan hanya di Penetapan Pengadilan, sisanya di tiga kolom pertama.
+  <p><strong>Potensi</strong> = seluruh objek wakaf aktif di wilayah itu, berapa pun
+     tahapannya dan termasuk yang belum punya berkas sama sekali. Ini basis kerja,
+     bukan capaian, jadi sengaja <em>tidak</em> ikut dijumlahkan ke Total Capaian —
+     ia angka pembanding: dari sekian potensi, sekian yang sudah tergarap.
+     Tidak terpengaruh periode yang dipilih.</p>
+  <p><strong>Siap Diserahkan</strong> = berkas aktif yang sudah sampai tahapan
+     terakhir, Penyerahan — sertipikatnya sudah terbit dan pekerjaan kantor sudah
+     rampung, tinggal serah terima ke nadzir. Sudah dihitung sebagai capaian, jadi
+     ia tidak lagi tercampur di kolom Dalam Proses. Begitu penyerahannya ditandai
+     selesai, berkas pindah ke Berkas Selesai.</p>
+  <p><strong>Total Capaian</strong> = Berkas Selesai + Siap Diserahkan + Dalam Proses +
+     Akan Didaftar + Penetapan Pengadilan + Alih Media. Keenam kolom saling lepas
+     sehingga tidak ada berkas yang dihitung dua kali: alih media hanya di kolomnya
+     sendiri, isbat yang masih berjalan hanya di Penetapan Pengadilan, yang sudah
+     sampai penyerahan hanya di Siap Diserahkan, sisanya di kolom lain.
      Isbat yang sudah selesai pindah ke Berkas Selesai supaya capaiannya tidak hilang.</p>
   <p><strong>Selisih</strong> = Alih Media − Catatan yang sudah ditarik. Angka negatif
      berarti masih ada sertipikat/warkah yang sudah ditarik tapi belum selesai
      dialihmediakan — ini tunggakan, bukan kekurangan capaian.</p>
   <p><strong>Periode.</strong> Berkas Selesai, Alih Media, dan Catatan Ditarik dihitung
-     dari kejadian di bulan yang dipilih. Dalam Proses, Akan Didaftar, dan Penetapan
-     Pengadilan adalah posisi berkas saat ini, bukan kejadian bulanan.</p>
+     dari kejadian di bulan yang dipilih. Siap Diserahkan, Dalam Proses, Akan Didaftar,
+     dan Penetapan Pengadilan adalah posisi berkas saat ini, bukan kejadian bulanan —
+     itu sebabnya Siap Diserahkan berdiri sebagai kolom sendiri dan tidak dilebur ke
+     Berkas Selesai, yang angkanya terikat bulan.</p>
   <p><strong>Penetapan Pengadilan</strong> = berkas aktif yang objeknya ditandai
      <em>perlu isbat</em> dan tanggal penetapannya masih kosong — artinya perkaranya
      masih di Pengadilan Agama. Begitu penetapan diisi di halaman berkas, ia pindah

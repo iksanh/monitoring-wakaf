@@ -84,6 +84,111 @@ class TesKendali(BasisTes):
         self.assertEqual(w1["penetapan"], 1)
         self.assertEqual(w1["alih_media"], 1)
 
+    # ---- siap diserahkan ----
+    def siapkan_serah(self, kecamatan="Suwawa"):
+        """Berkas aktif yang sudah sampai tahapan terakhir 'penyerahan'."""
+        o = self.buat_objek("Masjid Siap Serah", kecamatan)
+        return self.buat_berkas(o, "pertama_kali", "penyerahan")
+
+    def test_berkas_di_penyerahan_masuk_kolom_siap_serah(self):
+        self.siapkan_serah()
+        w1 = self.kendali.papan_kendali("2026-09")["baris"][0]
+        self.assertEqual(w1["siap_serah"], 1)
+
+    def test_siap_serah_tidak_lagi_dihitung_dalam_proses(self):
+        # Inti perubahan: dulu berkas di penyerahan tenggelam di 'proses'.
+        sebelum = self.kendali.papan_kendali("2026-09")["baris"][0]["proses"]
+        self.siapkan_serah()
+        w1 = self.kendali.papan_kendali("2026-09")["baris"][0]
+        self.assertEqual(w1["proses"], sebelum)
+        self.assertEqual(w1["siap_serah"], 1)
+
+    def test_siap_serah_menambah_total_capaian(self):
+        sebelum = self.kendali.papan_kendali("2026-09")["baris"][0]["total_capaian"]
+        self.siapkan_serah()
+        w1 = self.kendali.papan_kendali("2026-09")["baris"][0]
+        self.assertEqual(w1["total_capaian"], sebelum + 1)
+        self.assertEqual(w1["total_capaian"],
+                         sum(w1[k] for k in self.kendali.KOLOM_CAPAIAN))
+
+    def test_siap_serah_stok_tidak_terpengaruh_periode(self):
+        # Alasan kolom ini dipisah dari Berkas Selesai: ia tidak punya
+        # tanggal_selesai, jadi tidak bisa disaring bulan.
+        self.siapkan_serah()
+        for periode in ("2026-09", "2026-08", "2025-01"):
+            self.assertEqual(
+                self.kendali.papan_kendali(periode)["baris"][0]["siap_serah"], 1)
+
+    def test_penyerahan_selesai_pindah_ke_kolom_selesai(self):
+        berkas_id = self.siapkan_serah()
+        self.tandai_selesai(berkas_id, "2026-09-25")
+        w1 = self.kendali.papan_kendali("2026-09")["baris"][0]
+        self.assertEqual(w1["siap_serah"], 0)
+        self.assertEqual(w1["selesai"], 2)
+
+    def test_siap_serah_yang_masih_tunggu_penetapan_tetap_di_kolom_4(self):
+        # Ember harus tetap saling lepas: kolom penetapan menang.
+        o = self.buat_objek("Masjid Isbat Serah", "Suwawa", perlu_isbat=1)
+        self.buat_berkas(o, "pertama_kali", "penyerahan")
+        w1 = self.kendali.papan_kendali("2026-09")["baris"][0]
+        self.assertEqual(w1["siap_serah"], 0)
+        self.assertEqual(w1["penetapan"], 2)
+
+    def test_enam_ember_tidak_pernah_dobel(self):
+        self.siapkan_serah()
+        w1 = self.kendali.papan_kendali("2026-09")["baris"][0]
+        self.assertEqual(w1["total_capaian"],
+                         sum(w1[k] for k in self.kendali.KOLOM_CAPAIAN))
+        # Tujuh objek Wilayah I, tujuh berkas, semuanya terhitung tepat sekali.
+        self.assertEqual(w1["total_capaian"], 7)
+
+    # ---- potensi ----
+    def test_potensi_menghitung_seluruh_objek_wilayah(self):
+        # Wilayah I punya 6 objek, semuanya sudah berberkas.
+        w1 = self.kendali.papan_kendali("2026-09")["baris"][0]
+        self.assertEqual(w1["potensi"], 6)
+
+    def test_potensi_menghitung_objek_yang_belum_punya_berkas(self):
+        # Inti kolom ini: potensi adalah basis kerja, bukan berkas.
+        self.buat_objek("Masjid Tanpa Berkas", "Suwawa")
+        w1 = self.kendali.papan_kendali("2026-09")["baris"][0]
+        self.assertEqual(w1["potensi"], 7)
+        self.assertEqual(w1["total_capaian"], 6)
+
+    def test_potensi_tidak_dobel_saat_objek_punya_berkas_batal(self):
+        # Indeks unik migrasi 006 hanya mengikat berkas non-'batal', jadi satu
+        # objek bisa punya beberapa baris berkas. Tanpa COUNT DISTINCT objek ini
+        # akan terhitung dua kali.
+        self.svc_aksi.batalkan(self.selesai, "salah objek", self.pengguna_id)
+        self.buat_berkas(self.o[0], "pertama_kali", "pengukuran")
+        w1 = self.kendali.papan_kendali("2026-09")["baris"][0]
+        self.assertEqual(w1["potensi"], 6)
+
+    def test_potensi_tidak_masuk_total_capaian(self):
+        self.assertNotIn("potensi", self.kendali.KOLOM_CAPAIAN)
+        w1 = self.kendali.papan_kendali("2026-09")["baris"][0]
+        self.assertEqual(w1["total_capaian"],
+                         sum(w1[k] for k in self.kendali.KOLOM_CAPAIAN))
+
+    def test_potensi_tidak_terpengaruh_periode(self):
+        # Potensi itu stok, bukan arus: bulan mana pun angkanya sama.
+        for periode in ("2026-09", "2026-08", "2025-01"):
+            self.assertEqual(
+                self.kendali.papan_kendali(periode)["baris"][0]["potensi"], 6)
+
+    def test_potensi_baris_total_menjumlah_semua_wilayah(self):
+        papan = self.kendali.papan_kendali("2026-09")
+        self.assertEqual(papan["total"]["potensi"],
+                         sum(b["potensi"] for b in papan["baris"]))
+        self.assertEqual(papan["total"]["potensi"], 7)
+
+    def test_potensi_ikut_filter_wilayah_korwil(self):
+        wil3 = self.db.ambil_satu("SELECT id FROM wilayah WHERE nama = 'Wilayah III'")
+        korwil = {"peran": "korwil", "wilayah_id": wil3["id"]}
+        papan = self.kendali.papan_kendali("2026-09", pengguna=korwil)
+        self.assertEqual(len(papan["baris"]), 1)
+        self.assertEqual(papan["baris"][0]["potensi"], 1)
+
     def test_total_capaian_jumlah_lima_kolom(self):
         w1 = self.kendali.papan_kendali("2026-09")["baris"][0]
         self.assertEqual(w1["total_capaian"], 1 + 1 + 2 + 1 + 1)

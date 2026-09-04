@@ -1,23 +1,40 @@
 """Papan kendali per korwil — pengganti tabel 'Dashboard Control' di Excel.
 
-Delapan kolom, tidak satu pun disimpan sebagai total (aturan domain #2):
+Sepuluh kolom, tidak satu pun disimpan sebagai total (aturan domain #2):
 
+  0. Potensi              stok  — seluruh objek wakaf aktif di wilayah itu
   1. Berkas Selesai       arus  — status 'selesai', tanggal_selesai di periode
-  2. Berkas dalam Proses  stok  — aktif, sudah lewat loket
+  1b Siap Diserahkan      stok  — aktif di tahapan terakhir 'penyerahan':
+                                  sertipikatnya sudah terbit, tinggal serah terima
+  2. Berkas dalam Proses  stok  — aktif, sudah lewat loket, belum sampai penyerahan
   3. Berkas akan didaftar stok  — aktif di tahapan 'pra_daftar'
   4. Penetapan Pengadilan stok  — objek perlu_isbat, penetapan belum terbit
   5. Alih media           arus  — jenis 'alih_media' yang selesai di periode
-  6. Total Capaian        = 1+2+3+4+5
+  6. Total Capaian        = 1+1b+2+3+4+5
   7. Catatan ditarik      arus  — catatan_ditarik=1, tanggal_ditarik di periode
   8. Selisih              = 5 - 7  (negatif = tarikan belum selesai dialihmediakan)
 
-Kelima ember dijaga saling lepas supaya Total Capaian tidak menghitung berkas dua
+Keenam ember dijaga saling lepas supaya Total Capaian tidak menghitung berkas dua
 kali: alih media hanya di kolom 5, berkas yang masih menunggu penetapan hanya di
-kolom 4, sisanya di kolom 1-3. Begitu penetapan terbit berkas keluar dari kolom 4
+kolom 4, yang sudah sampai tahapan penyerahan hanya di kolom 1b, sisanya di kolom
+1-3. Begitu penetapan terbit berkas keluar dari kolom 4
 dan masuk kolom 2/3; kalau sudah rampung ia masuk kolom 1 — capaiannya tidak
-pernah hilang. Kolom 2-4 adalah posisi sekarang (stok), kolom 1/5/7 adalah
+pernah hilang. Kolom 1b dan 2-4 adalah posisi sekarang (stok), kolom 1/5/7 adalah
 kejadian dalam periode (arus) — sama seperti cara papan kendali ini diisi manual
 selama ini.
+
+Siap Diserahkan sengaja jadi kolom sendiri, bukan digabung ke Berkas Selesai:
+Berkas Selesai adalah arus yang disaring tanggal_selesai, sedangkan berkas yang
+tinggal penyerahan belum punya tanggal_selesai. Kalau keduanya dijadikan satu
+kolom, berkas siap-serah akan ikut muncul di setiap periode lampau yang dipilih
+dan angka historis jadi rusak. Dipisah begini, keduanya tetap terbaca sebagai
+capaian lewat Total Capaian tanpa mencemari angka bulanan.
+
+Potensi berdiri di luar keenam ember itu: ia basis kerja, bukan capaian, jadi
+sengaja TIDAK ikut dijumlahkan ke Total Capaian. Ia dihitung dengan COUNT DISTINCT
+karena satu objek bisa punya beberapa baris berkas yang dibatalkan (indeks unik
+migrasi 006 hanya mengikat berkas non-'batal'), dan tanpa DISTINCT objek seperti
+itu akan terhitung berkali-kali.
 """
 import re
 
@@ -35,7 +52,12 @@ BULAN = ("Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli",
 _MENUNGGU_PENETAPAN = "(o.perlu_isbat = 1 AND b.tanggal_penetapan IS NULL)"
 
 # Kolom yang dijumlahkan menjadi Total Capaian Per Korwil.
-KOLOM_CAPAIAN = ("selesai", "proses", "akan_didaftar", "penetapan", "alih_media")
+# 'potensi' sengaja di luar: basis kerja, bukan capaian.
+KOLOM_CAPAIAN = ("selesai", "siap_serah", "proses", "akan_didaftar", "penetapan",
+                 "alih_media")
+
+# Kolom yang dijumlahkan apa adanya di baris TOTAL, di luar kolom turunan.
+KOLOM_JUMLAH = KOLOM_CAPAIAN + ("catatan_ditarik", "potensi")
 
 
 def periode_sekarang() -> str:
@@ -86,13 +108,19 @@ def _batas(pengguna, wilayah_id=None) -> tuple[str, list]:
 
 _HITUNG = """
     SELECT w.id, w.nama AS wilayah,
+           COUNT(DISTINCT o.id) AS potensi,
            SUM(CASE WHEN b.jenis_permohonan_kode <> 'alih_media'
                      AND b.status = 'selesai'
                      AND substr(b.tanggal_selesai, 1, 7) = ?
                     THEN 1 ELSE 0 END) AS selesai,
            SUM(CASE WHEN b.jenis_permohonan_kode <> 'alih_media'
                      AND b.status = 'aktif'
-                     AND b.tahapan_kode <> 'pra_daftar'
+                     AND b.tahapan_kode = 'penyerahan'
+                     AND NOT {tunggu}
+                    THEN 1 ELSE 0 END) AS siap_serah,
+           SUM(CASE WHEN b.jenis_permohonan_kode <> 'alih_media'
+                     AND b.status = 'aktif'
+                     AND b.tahapan_kode NOT IN ('pra_daftar', 'penyerahan')
                      AND NOT {tunggu}
                     THEN 1 ELSE 0 END) AS proses,
            SUM(CASE WHEN b.jenis_permohonan_kode <> 'alih_media'
@@ -142,8 +170,7 @@ def papan_kendali(periode: str | None = None, wilayah_id=None, pengguna=None,
             tuple([periode, periode, periode] + p)
         )
     ]
-    kolom = KOLOM_CAPAIAN + ("catatan_ditarik",)
-    total = {k: sum(b[k] for b in baris) for k in kolom}
+    total = {k: sum(b[k] for b in baris) for k in KOLOM_JUMLAH}
     total["wilayah"] = "TOTAL"
     total = _lengkapi(total)
     return {"periode": periode, "label_periode": label_periode(periode),
