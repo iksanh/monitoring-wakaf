@@ -1,0 +1,61 @@
+/* masuk.css — hanya dipakai halaman masuk (dimuat lewat blok "gaya"). */
+
+.masuk-layar {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: var(--sp-4); padding: var(--sp-5) var(--sp-4) calc(var(--sp-5) + env(safe-area-inset-bottom));
+  background:
+    radial-gradient(900px 380px at 50% -8%, var(--hijau-muda), transparent 70%),
+    var(--latar);
+}
+
+.masuk-kartu {
+  width: 100%; max-width: 384px;
+  background: var(--putih); border: 1px solid var(--garis-tipis);
+  border-radius: var(--radius-besar); padding: var(--sp-6) var(--sp-5) var(--sp-5);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 12px 28px -14px rgba(16, 24, 40, .22);
+}
+
+.masuk-kepala { text-align: center; margin-bottom: var(--sp-5); }
+.masuk-lambang {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 52px; height: 52px; margin-bottom: var(--sp-3);
+  border-radius: 14px; background: var(--hijau); color: #fff;
+  box-shadow: 0 6px 14px -6px rgba(11, 107, 58, .6);
+}
+.masuk-kepala h1 { font-size: 1.16rem; line-height: 1.35; margin: 0 0 var(--sp-1); letter-spacing: -.2px; }
+.masuk-sub { margin: 0; font-size: .84rem; color: var(--teks-lemah); }
+
+.masuk-galat { margin-bottom: var(--sp-4); }
+
+.masuk-medan { margin-bottom: var(--sp-4); }
+.masuk-medan label { margin: 0 0 var(--sp-2); }
+
+/* Autofill Chrome jangan mengecat kolom jadi kuning. */
+.masuk-kartu input:-webkit-autofill {
+  -webkit-text-fill-color: var(--teks);
+  box-shadow: 0 0 0 40px var(--putih) inset;
+}
+
+.masuk-sandi { position: relative; }
+.masuk-sandi input { padding-right: 4.9rem; }
+.masuk-lihat {
+  position: absolute; top: 50%; right: var(--sp-1); transform: translateY(-50%);
+  min-height: 36px; padding: 0 var(--sp-3); border: 0; border-radius: var(--radius);
+  background: none; color: var(--hijau); font: inherit; font-size: .82rem;
+  font-weight: 600; cursor: pointer;
+}
+.masuk-lihat:hover { background: var(--hijau-muda); }
+.masuk-lihat:focus-visible { outline: 2px solid var(--hijau); outline-offset: 1px; }
+
+.masuk-petunjuk { margin: var(--sp-2) 0 0; font-size: .8rem; color: var(--kuning); }
+
+.masuk-form .tombol { margin-top: var(--sp-5); }
+
+.masuk-kaki { margin: 0; max-width: 384px; text-align: center; font-size: .8rem; color: var(--teks-lemah); }
+
+@media (min-width: 900px) {
+  .masuk-kartu { padding: var(--sp-6) var(--sp-6) var(--sp-5); }
+}

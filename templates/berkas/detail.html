@@ -184,11 +184,11 @@
 {% if pengguna.peran in ('admin','sekretariat','korwil') %}
 <form method="post" action="/berkas/{{ berkas.id }}/ceklis" class="kartu">
   {% for c in ceklis %}
-  <div style="border-bottom:1px solid var(--garis);padding:.5rem 0">
-    <label style="color:var(--teks);font-size:.92rem">
+  <div class="ceklis-medan">
+    <label class="cek">
       <input type="checkbox" name="terpenuhi" value="{{ c.syarat_id }}"
-             style="width:auto;min-height:auto" {{ 'checked' if c.terpenuhi }}>
-      {{ c.nama }}{% if c.wajib %} <span class="lencana t-merah">wajib</span>{% endif %}
+             {{ 'checked' if c.terpenuhi }}>
+      <span>{{ c.nama }}{% if c.wajib %} <span class="lencana t-merah">wajib</span>{% endif %}</span>
     </label>
     <input name="catatan_{{ c.syarat_id }}" value="{{ c.catatan or '' }}"
            placeholder="catatan (opsional)">

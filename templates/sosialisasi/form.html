@@ -21,9 +21,8 @@
   <label>Kecamatan sasaran</label>
   <div class="kartu" style="max-height:240px;overflow:auto;margin:0">
     {% for k in kecamatan %}
-    <label style="color:var(--teks)">
+    <label class="cek">
       <input type="checkbox" name="kecamatan_id" value="{{ k.id }}"
-             style="width:auto;min-height:auto"
              {{ 'checked' if k.id in terpilih }}> {{ k.nama }}</label>
     {% endfor %}
   </div>

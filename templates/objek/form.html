@@ -79,7 +79,7 @@
   <label for="url_dokumen">Tautan Dokumen</label>
   <input id="url_dokumen" name="url_dokumen" type="url" value="{{ nilai.url_dokumen or '' }}">
   <label>Koordinat Lokasi</label>
-  <div class="aksi" style="margin-top:.2rem">
+  <div class="aksi">
     <button type="button" class="tombol tombol-lain" data-ambil-koordinat>
       Ambil dari GPS Perangkat</button>
   </div>
@@ -98,13 +98,13 @@
   <label for="catatan_kua">Catatan KUA</label>
   <textarea id="catatan_kua" name="catatan_kua">{{ nilai.catatan_kua or '' }}</textarea>
 
-  <label><input type="checkbox" name="is_potensi" value="1" style="width:auto;min-height:auto"
+  <label class="cek"><input type="checkbox" name="is_potensi" value="1"
     {{ 'checked' if nilai.is_potensi }}> Dihitung sebagai potensi sertipikasi</label>
-  <label><input type="checkbox" name="is_prioritas" value="1" style="width:auto;min-height:auto"
+  <label class="cek"><input type="checkbox" name="is_prioritas" value="1"
     {{ 'checked' if nilai.is_prioritas }}> Berkas prioritas</label>
   <p class="lemah">Objek bertanda prioritas naik ke urutan teratas daftar objek dan
     daftar berkas, dan bisa disaring tersendiri.</p>
-  <label><input type="checkbox" name="perlu_isbat" value="1" style="width:auto;min-height:auto"
+  <label class="cek"><input type="checkbox" name="perlu_isbat" value="1"
     {{ 'checked' if nilai.perlu_isbat }}> Harus lewat isbat pengadilan dulu</label>
   <p class="lemah">Centang kalau AIW tidak ada sehingga wakafnya perlu ditetapkan
     Pengadilan Agama sebelum berkas bisa didaftarkan di loket. Nomor dan tanggal

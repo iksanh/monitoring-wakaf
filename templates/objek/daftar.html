@@ -1,48 +1,103 @@
 {% extends "layout.html" %}
 {% block judul %}Objek Wakaf{% endblock %}
 {% block isi %}
-<h1>Objek Wakaf</h1>
+{# Hitung penyaring lanjutan yang sedang aktif — dipakai untuk lencana dan
+   supaya lipatan terbuka sendiri saat pengguna datang dari tautan bersaring. #}
+{% set saring_lanjut = [saring.kecamatan_id, saring.desa_id, saring.tipologi_kode,
+                        saring.status_sertipikat, saring.aiw, saring.prioritas] %}
+{% set jml_lanjut = saring_lanjut | select | list | length %}
+{% set boleh_tambah = pengguna.peran in ('admin','sekretariat','korwil','petugas') %}
 
-<form method="get" class="saring">
-  <input class="penuh" type="search" name="q" value="{{ saring.q or '' }}"
-         placeholder="Cari nama objek, wakif, atau kode…">
-  <select name="kecamatan_id">
-    <option value="">Semua kecamatan</option>
-    {% for k in kecamatan %}
-    <option value="{{ k.id }}" {{ 'selected' if saring.kecamatan_id == k.id }}>{{ k.nama }}</option>
-    {% endfor %}
-  </select>
-  <select name="tipologi_kode">
-    <option value="">Semua tipologi</option>
-    <option value="kosong" {{ 'selected' if saring.tipologi_kode == 'kosong' }}>Belum ada tipologi</option>
-    {% for t in tipologi %}
-    <option value="{{ t.kode }}" {{ 'selected' if saring.tipologi_kode == t.kode }}>{{ t.kode }} — {{ t.nama }}</option>
-    {% endfor %}
-  </select>
-  <select name="status_sertipikat">
-    <option value="">Semua status</option>
-    {% for s in ['belum','proses','sudah'] %}
-    <option value="{{ s }}" {{ 'selected' if saring.status_sertipikat == s }}>{{ s | capitalize }}</option>
-    {% endfor %}
-  </select>
-  <select name="aiw">
-    <option value="">AIW: semua</option>
-    <option value="ada" {{ 'selected' if saring.aiw == 'ada' }}>Sudah ada AIW</option>
-    <option value="belum" {{ 'selected' if saring.aiw == 'belum' }}>Belum ada AIW</option>
-  </select>
-  <select name="prioritas">
-    <option value="">Prioritas: semua</option>
-    <option value="ya" {{ 'selected' if saring.prioritas == 'ya' }}>Hanya prioritas</option>
-    <option value="tidak" {{ 'selected' if saring.prioritas == 'tidak' }}>Bukan prioritas</option>
-  </select>
-  <button class="tombol penuh">Saring</button>
+<div class="kepala">
+  <h1>Objek Wakaf</h1>
+  <div class="kepala-aksi">
+    {% if boleh_tambah %}
+    <a class="tombol" href="/objek/baru">
+      <svg class="ikon" aria-hidden="true"><use href="#ikon-tambah"></use></svg>Tambah Objek</a>
+    {% endif %}
+    <a class="tombol tombol-lain" href="/laporan/objek.xlsx?{{ kueri }}">
+      <svg class="ikon" aria-hidden="true"><use href="#ikon-unduh"></use></svg>Excel</a>
+  </div>
+</div>
+
+<form method="get" class="saring-ringkas">
+  <div class="saring-cari">
+    <input type="search" name="q" value="{{ saring.q or '' }}" aria-label="Cari objek"
+           placeholder="Cari nama objek, wakif, atau kode…">
+    <button class="tombol" aria-label="Cari">
+      <svg class="ikon" aria-hidden="true"><use href="#ikon-cari"></use></svg><span>Cari</span></button>
+  </div>
+
+  <details class="saring-lanjut" {{ 'open' if jml_lanjut }}>
+    <summary>Filter lanjutan{% if jml_lanjut %}
+      <span class="lencana lencana-hitung">{{ jml_lanjut }}</span>{% endif %}</summary>
+
+    <div class="saring-medan">
+      <div>
+        <label for="f-kecamatan">Kecamatan</label>
+        <select id="f-kecamatan" name="kecamatan_id">
+          <option value="">Semua kecamatan</option>
+          {% for k in kecamatan %}
+          <option value="{{ k.id }}" {{ 'selected' if saring.kecamatan_id == k.id }}>{{ k.nama }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="f-desa">Desa</label>
+        <select id="f-desa" name="desa_id" data-induk-kecamatan="f-kecamatan">
+          <option value="">Semua desa</option>
+          {% for d in desa %}
+          <option value="{{ d.id }}" data-kecamatan="{{ d.kecamatan_id }}"
+                  {{ 'selected' if saring.desa_id == d.id }}>{{ d.nama }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="f-tipologi">Tipologi</label>
+        <select id="f-tipologi" name="tipologi_kode">
+          <option value="">Semua tipologi</option>
+          <option value="kosong" {{ 'selected' if saring.tipologi_kode == 'kosong' }}>Belum ada tipologi</option>
+          {% for t in tipologi %}
+          <option value="{{ t.kode }}" {{ 'selected' if saring.tipologi_kode == t.kode }}>{{ t.kode }} — {{ t.nama }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="f-status">Status sertipikat</label>
+        <select id="f-status" name="status_sertipikat">
+          <option value="">Semua status</option>
+          {% for s in ['belum','proses','sudah'] %}
+          <option value="{{ s }}" {{ 'selected' if saring.status_sertipikat == s }}>{{ s | capitalize }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="f-aiw">AIW</label>
+        <select id="f-aiw" name="aiw">
+          <option value="">Semua</option>
+          <option value="ada" {{ 'selected' if saring.aiw == 'ada' }}>Sudah ada AIW</option>
+          <option value="belum" {{ 'selected' if saring.aiw == 'belum' }}>Belum ada AIW</option>
+        </select>
+      </div>
+      <div>
+        <label for="f-prioritas">Prioritas</label>
+        <select id="f-prioritas" name="prioritas">
+          <option value="">Semua</option>
+          <option value="ya" {{ 'selected' if saring.prioritas == 'ya' }}>Hanya prioritas</option>
+          <option value="tidak" {{ 'selected' if saring.prioritas == 'tidak' }}>Bukan prioritas</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="saring-aksi">
+      <button class="tombol">Terapkan</button>
+      {% if jml_lanjut or saring.q %}
+      <a class="tombol tombol-lain" href="/objek">Bersihkan</a>{% endif %}
+    </div>
+  </details>
 </form>
 
-<p class="lemah">{{ hasil.total }} objek ditemukan.
-  <a href="/laporan/objek.xlsx?{{ kueri }}">Unduh Excel</a>
-  {% if pengguna.peran in ('admin','sekretariat','korwil','petugas') %}
-  · <a href="/objek/baru">Tambah objek</a>{% endif %}
-</p>
+<p class="lemah">{{ hasil.total }} objek ditemukan.</p>
 
 <div class="hanya-mobile">
   {% for o in hasil.baris %}

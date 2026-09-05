@@ -31,11 +31,15 @@ async def indeks(request):
 async def objek_xlsx(request):
     pengguna = request.state.pengguna
     p = request.query_params
+    # Harus sama persis dengan penyaring di /objek — tombol Unduh Excel
+    # meneruskan query string halaman daftar apa adanya.
     saring = {
         "kecamatan_id": web.int_atau(p.get("kecamatan_id")),
+        "desa_id": web.int_atau(p.get("desa_id")),
         "tipologi_kode": web.teks_atau_none(p.get("tipologi_kode")),
         "status_sertipikat": web.teks_atau_none(p.get("status_sertipikat")),
         "aiw": web.teks_atau_none(p.get("aiw")),
+        "prioritas": web.teks_atau_none(p.get("prioritas")),
         "q": web.teks_atau_none(p.get("q")),
     }
     hasil = svc_objek.cari(pengguna, saring, 1, per_halaman=100000)

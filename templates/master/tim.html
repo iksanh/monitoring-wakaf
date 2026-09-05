@@ -25,7 +25,7 @@
   <div class="kartu">
     <div class="kartu-judul">
       {% if not t.pengguna_id %}
-      <input type="checkbox" name="tim_id" value="{{ t.id }}" style="width:auto;min-height:auto">
+      <input type="checkbox" name="tim_id" value="{{ t.id }}">
       {% endif %}
       {{ t.nama }}
       <span class="lencana {{ 't-hijau' if t.jabatan == 'Korwil' else 't-abu' }}">{{ t.jabatan }}</span>
