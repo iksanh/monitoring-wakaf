@@ -12,14 +12,20 @@ permissions:
 env:
   AWS_REGION: ap-southeast-3
   INSTANCE_ID: i-0fca1338346e90453
+  ROLE: arn:aws:iam::521827759377:role/deploy-via-ssm
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: Lihat klaim OIDC
+        run: |
+          TOKEN=$(curl -sH "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com" | jq -r .value)
+          echo "$TOKEN" | cut -d. -f2 | base64 -d 2>/dev/null | jq '{sub, aud, repository, ref}'
       - uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::521827759377:role/deploy-via-ssm 
+          role-to-assume: ${{ env.ROLE }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Jalankan deploy lewat SSM
