@@ -67,6 +67,7 @@ disunting dengan Notepad; perubahan berlaku setelah server dijalankan ulang.
 | `DEBUG` | Harus `1` untuk jalan lokal lewat `http://`. Kalau `0`, cookie sesi dikunci `https_only` dan login selalu gagal tanpa HTTPS. |
 | `DB_PATH` | Bawaan `wakaf.db` di folder proyek. |
 | `UPLOAD_DIR` | Bawaan `data_berkas\`. |
+| `PENYIMPANAN` | `lokal` (bawaan) atau `s3`. Di Windows biarkan `lokal` — tidak butuh AWS sama sekali. |
 | `ADMIN_PASSWORD` | Hanya dipakai sekali saat tabel pengguna masih kosong. Biarkan kosong supaya sandi acak dicetak ke konsol. |
 
 ## Cadangan

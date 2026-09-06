@@ -20,7 +20,7 @@ Hanya paket di `requirements.txt`. **Jangan tambah dependency tanpa saya minta.*
 
 ```
 starlette · uvicorn · Jinja2 · itsdangerous · python-multipart
-reportlab · pandas · openpyxl
+reportlab · pandas · openpyxl · boto3
 ```
 
 Konsekuensi yang harus dipatuhi:
@@ -33,6 +33,10 @@ Konsekuensi yang harus dipatuhi:
 - **Session: `SessionMiddleware`** dari Starlette (backend `itsdangerous`).
 - **Hash sandi: `hashlib.pbkdf2_hmac`** dari stdlib (bcrypt tidak ada di requirements).
 - **PDF: reportlab `platypus`.** Excel: `pandas` untuk baca, `openpyxl` untuk tulis.
+- **Berkas unggahan lewat `services/penyimpanan.py`**, jangan sentuh disk langsung.
+  Backend dipilih `PENYIMPANAN` (`lokal` bawaan, `s3` di produksi). `boto3` hanya
+  boleh dipanggil dari modul itu, dan impornya malas supaya aplikasi tetap jalan
+  tanpa boto3 selama backend-nya lokal. Tes harus tetap bisa jalan luring.
 
 ---
 
@@ -69,7 +73,10 @@ Konsekuensi yang harus dipatuhi:
    service, bukan hanya menyembunyikan tombol di template.
 4. **Objek wakaf tidak pernah dihapus fisik.** Pakai kolom status / `is_aktif`.
 5. Setiap perubahan data (create/update/delete) menulis `log_audit`.
-6. **Satu objek wakaf = satu berkas permohonan.** Objek yang sudah punya
+6. **File dokumen tidak pernah ditimpa atau dihapus fisik.** Penggantian menulis
+   kunci baru, penghapusan hanya menandai `dokumen.is_aktif = 0`. Kunci berkas
+   selalu lewat `penyimpanan.periksa_kunci()` — itu penjaga path traversal-nya.
+7. **Satu objek wakaf = satu berkas permohonan.** Objek yang sudah punya
    berkas tidak boleh dibuatkan berkas lagi. Ditegakkan di
    `services/berkas.buat()` (raise `BerkasGanda`) DAN oleh indeks unik parsial
    `idx_berkas_satu_per_objek`. Berkas berstatus `batal` tidak menghalangi,
@@ -77,13 +84,13 @@ Konsekuensi yang harus dipatuhi:
    `/berkas` menyembunyikan yang `batal` kecuali filter Status memintanya —
    objeknya sudah kembali jadi objek wakaf biasa. Pembatalan lewat
    `services/berkas_aksi.batalkan()`, wajib beralasan.
-7. **Isbat bukan jenis permohonan.** Isbat terjadi sebelum berkas didaftarkan di
+8. **Isbat bukan jenis permohonan.** Isbat terjadi sebelum berkas didaftarkan di
    loket; permohonannya tetap `pertama_kali` dengan salinan penetapan sebagai
    lampiran. Penandanya dua lapis: `objek_wakaf.perlu_isbat` (rencana, dipakai
    Rekap Potensi untuk objek yang belum punya berkas) dan `berkas.no_penetapan` +
    `tanggal_penetapan` (realisasi). Selama `tanggal_penetapan` kosong, perkaranya
    dianggap masih di Pengadilan Agama.
-8. Data tidak lengkap **harus boleh disimpan** (235 dari 346 objek belum punya AIW).
+9. Data tidak lengkap **harus boleh disimpan** (235 dari 346 objek belum punya AIW).
    Validasi ketat hanya pada: nama objek, kecamatan, desa.
 
 ## UI
@@ -99,12 +106,13 @@ Konsekuensi yang harus dipatuhi:
 
 - `tests/` pakai `unittest` stdlib. Wajib ada tes untuk:
   `services/tahapan.pindah()`, semua fungsi di `services/rekap.py`,
-  dan parser `services/impor_excel.py`.
+  parser `services/impor_excel.py`, dan `services/penyimpanan.py`
+  (backend S3 diuji dengan klien tiruan, jangan pernah memanggil AWS sungguhan).
 - Jalankan `python -m unittest discover tests` sebelum bilang selesai.
 
 ## Yang JANGAN Dilakukan
 
-- Jangan tambah dependency baru.
+- Jangan tambah dependency baru tanpa saya setujui dulu.
 - Jangan ganti SQLite ke Postgres/MySQL.
 - Jangan bikin REST API JSON kecuali diminta — ini aplikasi server-rendered.
 - Jangan refactor besar-besaran tanpa saya setujui dulu.
@@ -144,6 +152,7 @@ Tandai saat selesai — ini yang membuat sesi berikutnya tahu posisi.
 - [x] Fase 8 — Sosialisasi + kunjungan
 - [x] Fase 9 — Deploy (berkas siap, belum dijalankan di server)
 - [x] Tambahan — Susunan tim + pembuatan akun massal (`/master/tim`)
+- [x] Tambahan — Pratinjau/ubah/hapus dokumen + penyimpanan S3 opsional
 
 ## Temuan Data yang Mengubah Angka di DESAIN_SISTEM.md
 

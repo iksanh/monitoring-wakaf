@@ -58,7 +58,8 @@ async def daur_hidup(app):
     if sandi:
         print(f"Akun admin dibuat. username: admin  sandi: {sandi}")
         print("Simpan sandi ini sekarang, tidak akan ditampilkan lagi.")
-    config.UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    if config.PENYIMPANAN != "s3":
+        config.UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     for masalah in config.periksa():
         print("PERINGATAN KONFIGURASI:", masalah)
     yield

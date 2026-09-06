@@ -1,11 +1,12 @@
 """Unggah, pratinjau, penggantian, dan penghapusan dokumen (foto/PDF/tautan)."""
 import re
+import secrets
 import unicodedata
 from pathlib import Path
 
 import config
 import db
-from services import audit
+from services import audit, penyimpanan
 
 _TAK_AMAN = re.compile(r"[^a-z0-9]+")
 
@@ -80,33 +81,32 @@ def periksa_unggahan(nama_file: str, ukuran: int) -> str | None:
     return None
 
 
-def _tulis_file(objek_id: int, nama_file: str, isi: bytes) -> str:
-    """Tulis ke UPLOAD_DIR/<tahun>/<objek_id>/ dengan nama yang belum terpakai."""
+def _tulis_file(objek_id: int, nama_file: str, isi: bytes) -> tuple[str, str]:
+    """Simpan berkas, kembalikan (kunci, nama_tampilan).
+
+    Kunci diberi imbuhan acak, bukan nomor urut seperti dulu: di S3 pengecekan
+    "sudah terpakai atau belum" berarti satu permintaan HEAD tiap putaran, dan
+    dua unggahan bersamaan masih bisa memilih nama yang sama.
+    """
     tahun = config.sekarang().strftime("%Y")
-    folder = config.UPLOAD_DIR / tahun / str(objek_id)
-    folder.mkdir(parents=True, exist_ok=True)
     ext = Path(nama_file).suffix.lower()
     dasar = slug(Path(nama_file).stem)[:60]
-    tujuan = folder / f"{dasar}{ext}"
-    urut = 1
-    while tujuan.exists():
-        urut += 1
-        tujuan = folder / f"{dasar}-{urut}{ext}"
-    tujuan.write_bytes(isi)
-    return str(tujuan.relative_to(config.UPLOAD_DIR)).replace("\\", "/")
+    kunci = f"{tahun}/{objek_id}/{dasar}-{secrets.token_hex(4)}{ext}"
+    penyimpanan.simpan(kunci, isi, TIPE_MIME.get(ext, "application/octet-stream"))
+    return kunci, f"{dasar}{ext}"
 
 
 def simpan_unggahan(objek_id: int, berkas_id, jenis: str, nama_file: str,
                     isi: bytes, pengguna_id: int) -> int:
-    relatif = _tulis_file(objek_id, nama_file, isi)
+    kunci, tampilan = _tulis_file(objek_id, nama_file, isi)
     dokumen_id = db.jalankan(
         """INSERT INTO dokumen (objek_wakaf_id, berkas_id, jenis, nama_file, path,
                                 ukuran_byte, oleh)
            VALUES (?, ?, ?, ?, ?, ?, ?)""",
-        (objek_id, berkas_id, jenis, Path(relatif).name, relatif, len(isi), pengguna_id),
+        (objek_id, berkas_id, jenis, tampilan, kunci, len(isi), pengguna_id),
     )
     audit.catat(None, pengguna_id, "unggah_dokumen", "dokumen", dokumen_id,
-                None, {"objek_wakaf_id": objek_id, "path": relatif})
+                None, {"objek_wakaf_id": objek_id, "path": kunci})
     return dokumen_id
 
 
@@ -159,8 +159,8 @@ def ganti(dokumen_id: int, jenis: str | None, nama_file: str | None,
     baru = {"jenis": jenis, "path": lama["path"], "nama_file": lama["nama_file"],
             "ukuran_byte": lama["ukuran_byte"], "url_eksternal": lama["url_eksternal"]}
     if isi is not None and nama_file:
-        relatif = _tulis_file(lama["objek_wakaf_id"], nama_file, isi)
-        baru.update(path=relatif, nama_file=Path(relatif).name,
+        kunci, tampilan = _tulis_file(lama["objek_wakaf_id"], nama_file, isi)
+        baru.update(path=kunci, nama_file=tampilan,
                     ukuran_byte=len(isi), url_eksternal=None)
     elif url:
         baru.update(path=None, nama_file=None, ukuran_byte=None, url_eksternal=url)
@@ -191,10 +191,20 @@ def hapus(dokumen_id: int, pengguna_id: int) -> None:
 
 
 def path_absolut(dokumen: dict) -> Path | None:
+    """Path di disk, atau None kalau berkasnya di S3 / tidak ada.
+
+    Route memakainya untuk memilih FileResponse (murah, mendukung Range) sebelum
+    jatuh ke isi().
+    """
     if not dokumen.get("path"):
         return None
-    calon = (config.UPLOAD_DIR / dokumen["path"]).resolve()
-    akar = config.UPLOAD_DIR.resolve()
-    if akar not in calon.parents:
-        return None
-    return calon if calon.exists() else None
+    return penyimpanan.path_lokal(dokumen["path"])
+
+
+def isi(dokumen: dict) -> bytes:
+    """Isi berkas apa pun backend-nya. Melempar GagalPenyimpanan kalau tidak bisa."""
+    return penyimpanan.baca(dokumen["path"])
+
+
+def tersedia(dokumen: dict) -> bool:
+    return bool(dokumen.get("path")) and penyimpanan.ada(dokumen["path"])

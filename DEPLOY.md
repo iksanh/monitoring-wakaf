@@ -110,9 +110,58 @@ sqlite3 /tmp/uji.db "PRAGMA integrity_check; SELECT COUNT(*) FROM objek_wakaf;"
 - [ ] `https://…/masuk` tampil, bisa login, lalu sandi admin diganti
 - [ ] `/objek` menampilkan hasil impor
 - [ ] Unggah satu foto ≤10 MB berhasil, file muncul di `/data/berkas/<tahun>/`
+      (atau di bucket kalau `PENYIMPANAN=s3`)
+- [ ] Pratinjau foto dan PDF di `/objek/<id>#dokumen` tampil tanpa mengunduh
 - [ ] `/laporan/rekap-potensi.pdf` terunduh dan isinya benar
 - [ ] `journalctl -u wakaf` tidak memuat PERINGATAN KONFIGURASI
 - [ ] Timer cadangan jalan dan file `.gz` masuk ke S3
+
+## 8b. Pindah Berkas Unggahan ke S3 (opsional)
+
+Bawaannya berkas disimpan di disk (`UPLOAD_DIR`). Kalau instance diganti, isinya
+ikut hilang — kolom `dokumen` di database masih ada tapi filenya tidak. Untuk
+memindahkannya ke S3:
+
+1. **Bucket.** Buat bucket privat penuh: Block Public Access menyala semua,
+   enkripsi SSE-S3, dan **Versioning aktif** (jaring pengaman kalau ada objek
+   tertimpa). Bucket cadangan yang sudah dipakai `backup.sh` boleh dipakai ulang
+   dengan prefix berbeda.
+
+2. **Izin.** Tambahkan ke IAM role instance — bukan access key di file env:
+
+   ```json
+   {
+     "Effect": "Allow",
+     "Action": ["s3:PutObject", "s3:GetObject"],
+     "Resource": "arn:aws:s3:::NAMA-BUCKET/dokumen/*"
+   }
+   ```
+
+   `s3:DeleteObject` sengaja tidak diberikan: penghapusan di aplikasi bersifat
+   logis, filenya tidak pernah dibuang.
+
+3. **Salin berkas lama.** Isi `S3_BUCKET`/`S3_PREFIX` di `/etc/app-wakaf.env`,
+   biarkan `PENYIMPANAN=lokal`, lalu:
+
+   ```bash
+   cd /srv/app-wakaf
+   ./venv/bin/python -m scripts.pindah_s3 --dry-run
+   ./venv/bin/python -m scripts.pindah_s3
+   ./venv/bin/python -m scripts.pindah_s3 --periksa   # harus keluar tanpa "belum cocok"
+   ```
+
+   Kunci di S3 sama persis dengan kolom `dokumen.path`, jadi tidak ada perubahan
+   database sama sekali.
+
+4. **Balik saklarnya.** `PENYIMPANAN=s3` di `/etc/app-wakaf.env`, lalu
+   `sudo systemctl restart wakaf`. Cek `journalctl -u wakaf` tidak memuat
+   PERINGATAN KONFIGURASI, lalu buka satu foto dan satu PDF dari `/objek/...`.
+
+5. **Jangan hapus `/data/berkas` dulu.** Biarkan beberapa minggu. Kalau ada
+   masalah, kembalikan `PENYIMPANAN=lokal` dan restart — file lamanya masih utuh.
+
+Kalau S3 tidak bisa dihubungi, unggahan gagal dengan pesan di layar dan
+pratinjau menjawab 503. Ini risiko baru yang tidak ada saat berkas di disk.
 
 ## 9. Pembaruan Versi
 

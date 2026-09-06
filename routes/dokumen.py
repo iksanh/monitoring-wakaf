@@ -1,10 +1,11 @@
 """Route dokumen objek/berkas: unggah, pratinjau, ganti, hapus."""
-from starlette.responses import FileResponse, PlainTextResponse, RedirectResponse
+from starlette.responses import (FileResponse, PlainTextResponse, RedirectResponse,
+                                 Response)
 from starlette.routing import Route
 
 import auth
 import web
-from services import dokumen as svc_dokumen, objek as svc_objek
+from services import dokumen as svc_dokumen, objek as svc_objek, penyimpanan
 
 
 @auth.butuh_masuk
@@ -28,9 +29,12 @@ async def unggah_dokumen(request):
         if galat:
             web.pesan(request, "Gagal unggah: " + galat)
         else:
-            svc_dokumen.simpan_unggahan(objek["id"], berkas_id, jenis,
-                                        unggahan.filename, isi, pengguna["id"])
-            web.pesan(request, "Dokumen terunggah.")
+            try:
+                svc_dokumen.simpan_unggahan(objek["id"], berkas_id, jenis,
+                                            unggahan.filename, isi, pengguna["id"])
+                web.pesan(request, "Dokumen terunggah.")
+            except penyimpanan.GagalPenyimpanan as kendala:
+                web.pesan(request, f"Gagal unggah: {kendala}")
     else:
         web.pesan(request, "Tidak ada file atau tautan yang dikirim.")
     return RedirectResponse(f"/objek/{objek['id']}#dokumen", status_code=303)
@@ -50,20 +54,40 @@ def _dokumen_terjangkau(request):
     return dokumen, None
 
 
-def _sajikan(dokumen, sebaris: bool):
-    """FileResponse dengan Content-Disposition inline (pratinjau) atau attachment."""
-    path = svc_dokumen.path_absolut(dokumen)
-    if not path:
-        return PlainTextResponse("404 — File tidak ada di server.", 404)
-    nama = dokumen["nama_file"] or path.name
-    if not sebaris:
-        return FileResponse(path, filename=nama)
-    # Nama file ikut ke header mentah, jadi buang karakter yang bisa merusaknya.
-    aman = "".join(c for c in nama if c.isascii() and c.isprintable()
+def _sebutan(nama: str) -> str:
+    """Nama file ikut ke header mentah, jadi buang karakter yang bisa merusaknya."""
+    return "".join(c for c in nama if c.isascii() and c.isprintable()
                    and c != chr(34)) or "dokumen"
-    return FileResponse(path, media_type=svc_dokumen.tipe_mime(dokumen), headers={
-        "Content-Disposition": f'inline; filename="{aman}"',
-    })
+
+
+def _sajikan(dokumen, sebaris: bool):
+    """Kirim berkas: dari disk lewat FileResponse, dari S3 lewat isi di memori.
+
+    Sengaja tidak memakai presigned URL. Dengan diambilkan aplikasi, pemeriksaan
+    wilayah di _dokumen_terjangkau() tetap berlaku untuk setiap permintaan dan
+    tidak ada alamat bucket yang bisa disalin keluar. Ukuran unggahan dibatasi
+    10 MB, jadi menaruhnya di memori sebentar masih wajar.
+    """
+    nama = dokumen["nama_file"] or "dokumen"
+    tanda = ("inline" if sebaris else "attachment") + f'; filename="{_sebutan(nama)}"'
+
+    berkas = svc_dokumen.path_absolut(dokumen)
+    if berkas is not None:
+        if not sebaris:
+            return FileResponse(berkas, filename=nama)
+        return FileResponse(berkas, media_type=svc_dokumen.tipe_mime(dokumen),
+                            headers={"Content-Disposition": tanda})
+
+    try:
+        muatan = svc_dokumen.isi(dokumen)
+    except (penyimpanan.KunciTidakSah, penyimpanan.BerkasHilang):
+        return PlainTextResponse("404 — File tidak ada di penyimpanan.", 404)
+    except penyimpanan.GagalPenyimpanan:
+        return PlainTextResponse(
+            "503 — Penyimpanan berkas sedang tidak bisa dihubungi. Coba lagi sebentar lagi.",
+            503)
+    return Response(muatan, media_type=svc_dokumen.tipe_mime(dokumen),
+                    headers={"Content-Disposition": tanda})
 
 
 @auth.butuh_masuk
@@ -109,8 +133,11 @@ async def ubah_dokumen(request):
             web.pesan(request, "Gagal ganti file: " + pesan_galat)
             return _kembali(dokumen)
         nama_file = unggahan.filename
-    svc_dokumen.ganti(dokumen["id"], jenis, nama_file, isi, tautan, pengguna["id"])
-    web.pesan(request, "Dokumen diperbarui.")
+    try:
+        svc_dokumen.ganti(dokumen["id"], jenis, nama_file, isi, tautan, pengguna["id"])
+        web.pesan(request, "Dokumen diperbarui.")
+    except penyimpanan.GagalPenyimpanan as kendala:
+        web.pesan(request, f"Gagal menyimpan file pengganti: {kendala}")
     return _kembali(dokumen)
 
 
@@ -123,7 +150,7 @@ async def hapus_dokumen(request):
     if not svc_dokumen.boleh_kelola(pengguna, dokumen):
         return PlainTextResponse("403 — Hanya pengunggah atau sekretariat yang boleh menghapus.", 403)
     svc_dokumen.hapus(dokumen["id"], pengguna["id"])
-    web.pesan(request, "Dokumen dihapus dari daftar. Filenya masih tersimpan di server.")
+    web.pesan(request, "Dokumen dihapus dari daftar. Filenya masih tersimpan.")
     return _kembali(dokumen)
 
 

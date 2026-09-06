@@ -31,6 +31,14 @@ else
     cp "$ARSIP" /data/cadangan/
 fi
 
+# Berkas unggahan ikut dicadangkan selama PENYIMPANAN masih "lokal".
+# Setelah pindah ke S3, berkasnya sudah ada di bucket dan blok ini tidak perlu.
+BERKAS_DIR="${UPLOAD_DIR:-/data/berkas}"
+if [ "${PENYIMPANAN:-lokal}" != "s3" ] && [ -d "$BERKAS_DIR" ] && command -v aws >/dev/null 2>&1; then
+    aws s3 sync "$BERKAS_DIR" "$TUJUAN_S3/berkas" --only-show-errors
+    echo "Berkas unggahan tersinkron ke $TUJUAN_S3/berkas"
+fi
+
 # Cadangan lokal lama dibersihkan.
 find /data/cadangan -name 'wakaf-*.db.gz' -mtime "+$SIMPAN_HARI" -delete 2>/dev/null || true
 
