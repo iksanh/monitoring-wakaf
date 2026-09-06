@@ -12,14 +12,15 @@ from starlette.staticfiles import StaticFiles
 import auth
 import config
 import db
-from routes import (akun, berkas, dashboard, impor, laporan, master, objek,
-                    rekap, sosialisasi, tahapan)
+from routes import (akun, berkas, dashboard, dokumen, impor, laporan, master,
+                    objek, rekap, sosialisasi, tahapan)
 
 rute = [
     *dashboard.rute,
     *akun.rute,
     *objek.rute,
     *berkas.rute,
+    *dokumen.rute,
     *tahapan.rute,
     *rekap.rute,
     *laporan.rute,

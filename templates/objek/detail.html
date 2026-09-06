@@ -72,14 +72,7 @@
 {% endfor %}
 
 <h2 id="dokumen">Dokumen</h2>
-{% for d in dokumen %}
-<div class="kartu">
-  <div class="kartu-judul"><a href="/dokumen/{{ d.id }}">{{ d.nama_file | default(d.url_eksternal, true) }}</a></div>
-  <div class="lemah">{{ d.jenis }} · {{ d.diunggah_pada }} · {{ d.nama_pengunggah | kosong }}</div>
-</div>
-{% else %}
-<div class="kartu"><p class="lemah">Belum ada dokumen.</p></div>
-{% endfor %}
+{% include "komponen/daftar_dokumen.html" %}
 
 {% if pengguna.peran != 'pimpinan' %}
 <form method="post" action="/objek/{{ objek.id }}/dokumen" enctype="multipart/form-data" class="kartu">

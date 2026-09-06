@@ -1,0 +1,83 @@
+{# Daftar dokumen dengan pratinjau. Dipakai halaman objek & berkas.
+   Butuh variabel `dokumen` (dari services/dokumen.per_objek / per_berkas). #}
+{# Atribut yang dibaca app.js untuk mengisi jendela penampil. #}
+{% macro penampil(d) -%}
+data-lihat="/dokumen/{{ d.id }}/pratinjau" data-jenis="{{ d.pratinjau }}"
+data-unduh="/dokumen/{{ d.id }}" data-nama="{{ d.nama_file }}"
+{%- endmacro %}
+{% for d in dokumen %}
+<div class="kartu dok">
+  <div class="kartu-judul">
+    <span class="dok-nama">{{ d.nama_file | default(d.url_eksternal, true) }}</span>
+    <span class="lencana">{{ d.jenis | kosong }}</span>
+  </div>
+
+  {% if d.pratinjau == 'gambar' %}
+  <button type="button" class="dok-gambar" {{ penampil(d) }} title="Perbesar foto">
+    <img src="/dokumen/{{ d.id }}/pratinjau" alt="Pratinjau {{ d.nama_file }}" loading="lazy">
+  </button>
+  {% elif d.url_eksternal %}
+  <p class="lemah">Tautan luar — isinya dibuka di Google Drive.</p>
+  {% endif %}
+
+  <div class="lemah dok-info">
+    {{ d.diunggah_pada[:10] | tanggal }} {{ d.diunggah_pada[11:16] }} ·
+    {{ d.nama_pengunggah | kosong }}
+    {% if d.ukuran_byte %} · {{ (d.ukuran_byte / 1024) | angka }} KB{% endif %}
+  </div>
+
+  <div class="aksi">
+    {% if d.url_eksternal %}
+    <a class="tombol tombol-lain tombol-kecil" href="/dokumen/{{ d.id }}"
+       target="_blank" rel="noopener">Buka Tautan</a>
+    {% else %}
+    {% if d.pratinjau %}
+    <button type="button" class="tombol tombol-kecil" {{ penampil(d) }}>
+      Lihat {{ 'PDF' if d.pratinjau == 'pdf' else 'Foto' }}</button>
+    {% endif %}
+    <a class="tombol tombol-lain tombol-kecil"
+       href="/dokumen/{{ d.id }}{{ '/pratinjau' if d.pratinjau else '' }}"
+       target="_blank" rel="noopener">Tab Baru</a>
+    <a class="tombol tombol-lain tombol-kecil" href="/dokumen/{{ d.id }}">Unduh</a>
+    {% endif %}
+  </div>
+
+  {% if d.boleh_kelola %}
+  <details class="dok-kelola">
+    <summary>Ubah atau hapus</summary>
+    <form method="post" action="/dokumen/{{ d.id }}/ubah" enctype="multipart/form-data">
+      <label for="jenis-{{ d.id }}">Jenis dokumen</label>
+      <input id="jenis-{{ d.id }}" name="jenis" value="{{ d.jenis | default('', true) }}"
+             placeholder="mis. AIW, foto lokasi, sertipikat">
+      <label for="ganti-file-{{ d.id }}">Ganti file (kosongkan kalau tidak diganti)</label>
+      <input id="ganti-file-{{ d.id }}" name="berkas_file" type="file" accept=".jpg,.jpeg,.png,.pdf">
+      <label for="ganti-tautan-{{ d.id }}">…atau ganti dengan tautan</label>
+      <input id="ganti-tautan-{{ d.id }}" name="url_eksternal" type="url"
+             value="{{ d.url_eksternal | default('', true) }}" placeholder="https://drive.google.com/…">
+      <div class="aksi"><button class="tombol tombol-kecil">Simpan Perubahan</button></div>
+    </form>
+    <form method="post" action="/dokumen/{{ d.id }}/hapus" class="dok-hapus"
+          data-konfirmasi="Hapus dokumen ini dari daftar? Filenya tetap tersimpan di server.">
+      <button class="tombol tombol-bahaya tombol-kecil">Hapus Dokumen</button>
+    </form>
+  </details>
+  {% endif %}
+</div>
+{% else %}
+<div class="kartu"><p class="lemah">{{ dokumen_kosong | default('Belum ada dokumen.', true) }}</p></div>
+{% endfor %}
+
+{# Satu jendela penampil dipakai bergantian oleh semua dokumen di halaman ini. #}
+{% if dokumen %}
+<dialog class="penampil" id="penampil-dokumen" aria-label="Penampil dokumen">
+  <div class="penampil-kepala">
+    <strong class="penampil-nama"></strong>
+    <button type="button" class="tombol tombol-lain tombol-kecil" data-tutup-penampil>Tutup</button>
+  </div>
+  <div class="penampil-isi"></div>
+  <div class="penampil-kaki">
+    <a class="tombol tombol-lain tombol-kecil" data-penampil-tab target="_blank" rel="noopener">Tab Baru</a>
+    <a class="tombol tombol-lain tombol-kecil" data-penampil-unduh>Unduh</a>
+  </div>
+</dialog>
+{% endif %}

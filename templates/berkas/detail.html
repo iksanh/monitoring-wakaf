@@ -223,13 +223,8 @@
   </ul>
 </div>
 
-<h2>Dokumen Berkas</h2>
-<div class="kartu">
-  {% for d in dokumen %}
-  <div><a href="/dokumen/{{ d.id }}">{{ d.nama_file | default(d.url_eksternal, true) }}</a>
-    <span class="lemah">{{ d.jenis }}</span></div>
-  {% else %}
-  <p class="lemah">Belum ada dokumen. Unggah dari halaman objek.</p>
-  {% endfor %}
-</div>
+<h2 id="dokumen">Dokumen Berkas</h2>
+{% with dokumen_kosong = 'Belum ada dokumen. Unggah dari halaman objek.' %}
+{% include "komponen/daftar_dokumen.html" %}
+{% endwith %}
 {% endblock %}

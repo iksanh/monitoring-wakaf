@@ -81,7 +81,7 @@ async def detail(request):
     return web.render(request, "objek/detail.html", {
         "objek": objek,
         "berkas": svc_berkas.per_objek(objek["id"]),
-        "dokumen": svc_dokumen.per_objek(objek["id"]),
+        "dokumen": svc_dokumen.per_objek(objek["id"], pengguna),
         "kunjungan": svc_kunjungan.per_objek(objek["id"]),
         "riwayat": audit.riwayat("objek_wakaf", objek["id"]),
         "jenis_permohonan": svc_berkas.daftar_jenis(),

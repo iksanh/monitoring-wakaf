@@ -1,5 +1,5 @@
-"""Route berkas permohonan, ceklis syarat, dokumen, dan kunjungan lapangan."""
-from starlette.responses import FileResponse, PlainTextResponse, RedirectResponse
+"""Route berkas permohonan, ceklis syarat, dan kunjungan lapangan."""
+from starlette.responses import PlainTextResponse, RedirectResponse
 from starlette.routing import Route
 
 import auth
@@ -50,7 +50,7 @@ async def detail(request):
         "berikutnya": svc.tahapan_berikutnya(berkas),
         "ceklis": svc_ceklis.per_berkas(berkas["id"]),
         "progres": svc_ceklis.progres(berkas["id"]),
-        "dokumen": svc_dokumen.per_berkas(berkas["id"]),
+        "dokumen": svc_dokumen.per_berkas(berkas["id"], pengguna),
         "hari_ini": config.hari_ini_iso(),
     })
 
@@ -175,48 +175,6 @@ async def simpan_ceklis(request):
 
 
 @auth.butuh_masuk
-async def unggah_dokumen(request):
-    pengguna = request.state.pengguna
-    objek = svc_objek.ambil(int(request.path_params["id"]))
-    if not objek or not svc_objek.boleh_akses(pengguna, objek):
-        return PlainTextResponse("403 — Tidak berhak.", 403)
-    form = await request.form()
-    jenis = web.teks_atau_none(form.get("jenis")) or "lainnya"
-    berkas_id = web.int_atau(form.get("berkas_id"))
-    tautan = web.teks_atau_none(form.get("url_eksternal"))
-    unggahan = form.get("berkas_file")
-
-    if tautan:
-        svc_dokumen.simpan_tautan(objek["id"], berkas_id, jenis, tautan, pengguna["id"])
-        web.pesan(request, "Tautan dokumen tersimpan.")
-    elif unggahan is not None and getattr(unggahan, "filename", ""):
-        isi = await unggahan.read()
-        galat = svc_dokumen.periksa_unggahan(unggahan.filename, len(isi))
-        if galat:
-            web.pesan(request, "Gagal unggah: " + galat)
-        else:
-            svc_dokumen.simpan_unggahan(objek["id"], berkas_id, jenis,
-                                        unggahan.filename, isi, pengguna["id"])
-            web.pesan(request, "Dokumen terunggah.")
-    else:
-        web.pesan(request, "Tidak ada file atau tautan yang dikirim.")
-    return RedirectResponse(f"/objek/{objek['id']}#dokumen", status_code=303)
-
-
-@auth.butuh_masuk
-async def unduh_dokumen(request):
-    dokumen = svc_dokumen.ambil(int(request.path_params["id"]))
-    if not dokumen:
-        return PlainTextResponse("404 — Dokumen tidak ditemukan.", 404)
-    if dokumen["url_eksternal"]:
-        return RedirectResponse(dokumen["url_eksternal"], status_code=303)
-    path = svc_dokumen.path_absolut(dokumen)
-    if not path:
-        return PlainTextResponse("404 — File tidak ada di server.", 404)
-    return FileResponse(path, filename=dokumen["nama_file"])
-
-
-@auth.butuh_masuk
 async def catat_kunjungan(request):
     pengguna = request.state.pengguna
     objek = svc_objek.ambil(int(request.path_params["id"]))
@@ -242,7 +200,5 @@ rute = [
     Route("/berkas/{id:int}/penetapan", penetapan, methods=["POST"]),
     Route("/berkas/{id:int}/batalkan", batalkan, methods=["POST"]),
     Route("/objek/{id:int}/berkas/baru", baru, methods=["GET", "POST"]),
-    Route("/objek/{id:int}/dokumen", unggah_dokumen, methods=["POST"]),
     Route("/objek/{id:int}/kunjungan", catat_kunjungan, methods=["POST"]),
-    Route("/dokumen/{id:int}", unduh_dokumen),
 ]

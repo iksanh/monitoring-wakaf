@@ -81,6 +81,66 @@
     });
   });
 
+  // Penampil dokumen: satu jendela popup dipakai bergantian oleh semua dokumen.
+  // Isinya baru dimuat saat dibuka, jadi halaman objek tidak menarik semua file
+  // sekaligus di koneksi lapangan.
+  var penampil = document.getElementById('penampil-dokumen');
+  if (penampil) {
+    var isiPenampil = penampil.querySelector('.penampil-isi');
+    var namaPenampil = penampil.querySelector('.penampil-nama');
+    var keTab = penampil.querySelector('[data-penampil-tab]');
+    var keUnduh = penampil.querySelector('[data-penampil-unduh]');
+
+    var tutup = function () {
+      // Kosongkan dulu supaya iframe berhenti memuat dan memori HP dilepas.
+      isiPenampil.textContent = '';
+      if (penampil.open) penampil.close();
+    };
+
+    var isiDengan = function (pemicu) {
+      var alamat = pemicu.dataset.lihat;
+      isiPenampil.textContent = '';
+      if (pemicu.dataset.jenis === 'gambar') {
+        var gambar = document.createElement('img');
+        gambar.src = alamat;
+        gambar.alt = pemicu.dataset.nama || 'Dokumen';
+        isiPenampil.appendChild(gambar);
+        return;
+      }
+      // Chrome & Safari di HP tidak punya penampil PDF di dalam halaman —
+      // iframe-nya cuma jadi kotak kosong. Arahkan ke tab baru saja.
+      if (navigator.pdfViewerEnabled === false) {
+        var pesan = document.createElement('p');
+        pesan.className = 'penampil-pesan';
+        pesan.textContent = 'Browser di perangkat ini tidak bisa menampilkan PDF '
+          + 'di dalam halaman. Ketuk "Tab Baru" di bawah untuk membacanya.';
+        isiPenampil.appendChild(pesan);
+        return;
+      }
+      var bingkai = document.createElement('iframe');
+      bingkai.src = alamat;
+      bingkai.title = pemicu.dataset.nama || 'Dokumen';
+      isiPenampil.appendChild(bingkai);
+    };
+
+    document.querySelectorAll('[data-lihat]').forEach(function (pemicu) {
+      pemicu.addEventListener('click', function () {
+        namaPenampil.textContent = pemicu.dataset.nama || 'Dokumen';
+        keTab.href = pemicu.dataset.lihat;
+        keUnduh.href = pemicu.dataset.unduh;
+        isiDengan(pemicu);
+        if (typeof penampil.showModal === 'function') penampil.showModal();
+        else penampil.setAttribute('open', '');
+      });
+    });
+
+    penampil.querySelector('[data-tutup-penampil]').addEventListener('click', tutup);
+    // Ketuk latar gelap di luar isi jendela untuk menutup.
+    penampil.addEventListener('click', function (e) { if (e.target === penampil) tutup(); });
+    // Tombol Esc / tombol kembali menutup <dialog> tanpa lewat tutup().
+    penampil.addEventListener('close', function () { isiPenampil.textContent = ''; });
+  }
+
   // Ambil koordinat dari GPS perangkat (form objek wakaf & form kunjungan).
   document.querySelectorAll('[data-ambil-koordinat]').forEach(function (tombol) {
     var form = tombol.closest('form');
