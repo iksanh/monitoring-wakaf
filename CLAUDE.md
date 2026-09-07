@@ -109,7 +109,13 @@ Konsekuensi yang harus dipatuhi:
     dilaporkan di kolom sendiri di tiap rekap supaya tidak hilang diam-diam.
     Yang boleh memilah: `admin` dan `korwil` (korwil hanya wilayahnya, ditegakkan
     di service). Importer Excel membiarkan objek baru `belum_dipilah`.
-11. **Hanya objek berstatus `bisa` yang boleh didaftarkan jadi berkas.**
+11. **Data administratif berkas diperbaiki lewat `services/berkas.ubah()`**
+    (halaman `/berkas/{id}/ubah`, peran di `auth.PERAN_UBAH_BERKAS`). `KOLOM_UBAH`
+    sengaja sempit: `tahapan_kode`, `status`, dan `jenis_permohonan_kode` TIDAK
+    ada di dalamnya — masing-masing punya jalur sendiri (`tahapan.pindah()`,
+    `berkas_aksi.batalkan()`, dan batal-lalu-daftar-ulang). Salah jenis tidak
+    boleh ditambal di sini karena ceklis syarat sudah disalin mengikuti jenis.
+12. **Hanya objek berstatus `bisa` yang boleh didaftarkan jadi berkas.**
     Ditegakkan di `services/berkas.buat()` (raise `ObjekBelumBisaDidaftarkan`),
     berlaku untuk semua peran — bukan cuma loket. Route mencegatnya lebih awal
     supaya form pendaftaran tidak sempat tampil; pesannya dari satu tempat,
@@ -178,6 +184,7 @@ Tandai saat selesai — ini yang membuat sesi berikutnya tahu posisi.
 - [x] Tambahan — Pratinjau/ubah/hapus dokumen + penyimpanan S3 opsional
 - [x] Tambahan — Pemilahan objek (bisa/tidak bisa ditindaklanjuti) + dashboard ikut
 - [x] Tambahan — Peran `petugas_loket` + hanya objek `bisa` yang boleh didaftarkan
+- [x] Tambahan — Halaman Ubah Berkas (perbaikan nomor berkas dll)
 
 ## Temuan Data yang Mengubah Angka di DESAIN_SISTEM.md
 

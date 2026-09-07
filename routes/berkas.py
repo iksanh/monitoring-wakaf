@@ -112,6 +112,38 @@ async def baru(request):
         "hari_ini": config.hari_ini_iso()})
 
 
+@auth.butuh_peran(*auth.PERAN_UBAH_BERKAS)
+async def ubah(request):
+    """Perbaiki data administratif berkas — terutama nomor berkas yang salah ketik.
+
+    Tahapan, status, dan jenis permohonan tidak ada di sini; masing-masing punya
+    jalurnya sendiri. Lihat catatan di services/berkas.KOLOM_UBAH.
+    """
+    pengguna = request.state.pengguna
+    berkas = svc.ambil(int(request.path_params["id"]))
+    if not berkas:
+        return PlainTextResponse("404 — Berkas tidak ditemukan.", 404)
+    if not svc.boleh_akses(pengguna, berkas):
+        return PlainTextResponse("403 — Berkas ini di luar wilayah Anda.", 403)
+
+    if request.method == "POST":
+        form = await request.form()
+        data = {
+            "no_berkas": web.teks_atau_none(form.get("no_berkas")),
+            "tanggal_daftar": web.teks_atau_none(form.get("tanggal_daftar")),
+            "target_penyerahan": web.teks_atau_none(form.get("target_penyerahan")),
+            "petugas_id": web.int_atau(form.get("petugas_id")),
+            "catatan": web.teks_atau_none(form.get("catatan")),
+        }
+        svc.ubah(berkas["id"], data, pengguna["id"])
+        web.pesan(request, "Data berkas diperbarui.")
+        return RedirectResponse(f"/berkas/{berkas['id']}", status_code=303)
+
+    return web.render(request, "berkas/ubah.html", {
+        "berkas": berkas, "nilai": berkas, "petugas": svc.daftar_petugas(),
+        "hari_ini": config.hari_ini_iso()})
+
+
 @auth.butuh_peran("admin", "sekretariat")
 async def batalkan(request):
     """Batalkan pendaftaran: berkas keluar dari daftar, objeknya bebas lagi."""
@@ -203,6 +235,7 @@ async def catat_kunjungan(request):
 rute = [
     Route("/berkas", daftar),
     Route("/berkas/{id:int}", detail),
+    Route("/berkas/{id:int}/ubah", ubah, methods=["GET", "POST"]),
     Route("/berkas/{id:int}/ceklis", simpan_ceklis, methods=["POST"]),
     Route("/berkas/{id:int}/tarikan", tarikan, methods=["POST"]),
     Route("/berkas/{id:int}/penetapan", penetapan, methods=["POST"]),

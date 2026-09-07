@@ -61,6 +61,7 @@ templates.env.filters["kosong"] = kosong
 templates.env.globals["warna_tipologi"] = warna_tipologi
 templates.env.globals["LABEL_PERAN"] = auth.LABEL_PERAN
 templates.env.globals["PERAN_PENDAFTAR"] = auth.PERAN_PENDAFTAR
+templates.env.globals["PERAN_UBAH_BERKAS"] = auth.PERAN_UBAH_BERKAS
 templates.env.globals["NAMA_KANTOR"] = config.NAMA_KANTOR
 
 

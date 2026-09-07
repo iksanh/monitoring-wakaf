@@ -210,12 +210,28 @@ def buat(data: dict, pengguna_id: int) -> int:
         kon.close()
 
 
-KOLOM_UBAH = ("no_berkas", "jenis_permohonan_kode", "status", "tanggal_daftar",
-              "target_penyerahan", "petugas_id", "catatan")
+# Kolom yang boleh diperbaiki lewat halaman Ubah Berkas. Sengaja sempit:
+#
+#   tahapan_kode          — hanya services/tahapan.pindah() (aturan domain #1).
+#   status                — hanya services/berkas_aksi.batalkan(), yang mewajibkan
+#                           alasan. Kalau kolom ini ikut di sini, 'batal' bisa
+#                           dipasang lewat form tanpa alasan dan jejaknya hilang.
+#   jenis_permohonan_kode — ceklis syarat disalin sesuai jenis saat berkas dibuat
+#                           (ceklis.salin_syarat). Mengganti jenis belakangan akan
+#                           meninggalkan ceklis jenis lama sekaligus melewatkan
+#                           syarat jenis baru. Salah jenis diperbaiki dengan
+#                           membatalkan pendaftaran lalu mendaftar ulang.
+KOLOM_UBAH = ("no_berkas", "tanggal_daftar", "target_penyerahan",
+              "petugas_id", "catatan")
 
 
 def ubah(berkas_id: int, data: dict, pengguna_id: int) -> None:
-    """Ubah data administratif berkas. tahapan_kode TIDAK pernah disentuh di sini."""
+    """Perbaiki data administratif berkas.
+
+    tahapan_kode, status, dan jenis_permohonan_kode TIDAK pernah disentuh di sini
+    — lihat catatan di KOLOM_UBAH. Mengisi tanggal_daftar di sini juga tidak
+    memindahkan tahapan: itu tetap kerjanya services/tahapan.pindah().
+    """
     kon = db.koneksi()
     try:
         kon.execute("BEGIN")
@@ -227,8 +243,12 @@ def ubah(berkas_id: int, data: dict, pengguna_id: int) -> None:
             f"UPDATE berkas SET {set_sql}, diubah_pada = ? WHERE id = ?",
             tuple(data.get(k) for k in KOLOM_UBAH) + (config.stempel_waktu(), berkas_id),
         )
+        # Catat yang berubah saja — sama seperti services/objek.ubah(), supaya
+        # riwayat perubahan terbaca tanpa dibanjiri kolom yang tidak disentuh.
+        berubah = {k: (lama[k], data.get(k)) for k in KOLOM_UBAH if lama[k] != data.get(k)}
         audit.catat(kon, pengguna_id, "ubah", "berkas", berkas_id,
-                    {k: lama[k] for k in KOLOM_UBAH}, {k: data.get(k) for k in KOLOM_UBAH})
+                    {k: v[0] for k, v in berubah.items()},
+                    {k: v[1] for k, v in berubah.items()})
         kon.commit()
     except Exception:
         kon.rollback()

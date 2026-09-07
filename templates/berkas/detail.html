@@ -20,6 +20,9 @@
 </div>
 
 <div class="aksi">
+  {% if pengguna.peran in PERAN_UBAH_BERKAS and berkas.status != 'batal' %}
+  <a class="tombol" href="/berkas/{{ berkas.id }}/ubah">Ubah Berkas</a>
+  {% endif %}
   <a class="tombol tombol-lain" href="/laporan/berkas/{{ berkas.id }}/kendali.pdf">Daftar Kendali (PDF)</a>
   {% if pengguna.peran in ('admin','sekretariat') %}
   <a class="tombol tombol-lain" href="/laporan/berkas/{{ berkas.id }}/berita-acara.pdf">Berita Acara (PDF)</a>

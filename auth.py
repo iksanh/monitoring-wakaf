@@ -33,6 +33,11 @@ PERAN_TERBATAS_WILAYAH = ("korwil", "petugas")
 # Peran yang boleh mendaftarkan objek wakaf jadi berkas permohonan di loket.
 PERAN_PENDAFTAR = ("admin", "sekretariat", "korwil", "petugas_loket")
 
+# Peran yang boleh memperbaiki data administratif berkas (nomor berkas, tanggal
+# daftar, target penyerahan, petugas, catatan). Nomor berkas lahir di loket, jadi
+# loket ikut — merekalah yang paling cepat tahu kalau ada salah ketik.
+PERAN_UBAH_BERKAS = ("admin", "sekretariat", "petugas_loket")
+
 
 def buat_hash(sandi: str) -> str:
     garam = secrets.token_hex(16)
