@@ -87,8 +87,11 @@ def simpan(objek: list[dict], kemenag: list[dict], laporan, pengguna_id=None,
                 kolom_sql = ", ".join(KOLOM_OBJEK)
                 tanya = ", ".join("?" for _ in KOLOM_OBJEK)
                 kur = kon.execute(
-                    f"""INSERT INTO objek_wakaf (kode, {kolom_sql}, is_potensi, sumber_data)
-                        VALUES (?, {tanya}, 1, 'excel_migrasi')""",
+                    # status_tindak_lanjut sengaja dibiarkan pada bawaannya,
+                    # 'belum_dipilah': objek hasil impor belum diperiksa siapa pun,
+                    # jadi belum boleh dihitung sebagai potensi.
+                    f"""INSERT INTO objek_wakaf (kode, {kolom_sql}, sumber_data)
+                        VALUES (?, {tanya}, 'excel_migrasi')""",
                     (kode,) + tuple(nilai[k] for k in KOLOM_OBJEK),
                 )
                 audit.catat(kon, pengguna_id, "impor_baru", "objek_wakaf",

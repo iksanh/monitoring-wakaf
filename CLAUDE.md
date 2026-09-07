@@ -92,6 +92,14 @@ Konsekuensi yang harus dipatuhi:
    dianggap masih di Pengadilan Agama.
 9. Data tidak lengkap **harus boleh disimpan** (235 dari 346 objek belum punya AIW).
    Validasi ketat hanya pada: nama objek, kecamatan, desa.
+10. **`objek_wakaf.status_tindak_lanjut` hanya boleh diubah lewat
+    `services/pemilahan.pilah()`.** Tiga keadaan: `belum_dipilah` (bawaan),
+    `bisa`, `tidak_bisa` (wajib beralasan). **Potensi = objek berstatus `bisa`** —
+    tidak ada lagi kolom `is_potensi`, dibuang migrasi 012 supaya tidak ada dua
+    sumber kebenaran. Objek yang belum dipilah bukan potensi, tapi tetap
+    dilaporkan di kolom sendiri di tiap rekap supaya tidak hilang diam-diam.
+    Yang boleh memilah: `admin` dan `korwil` (korwil hanya wilayahnya, ditegakkan
+    di service). Importer Excel membiarkan objek baru `belum_dipilah`.
 
 ## UI
 
@@ -105,8 +113,8 @@ Konsekuensi yang harus dipatuhi:
 ## Testing
 
 - `tests/` pakai `unittest` stdlib. Wajib ada tes untuk:
-  `services/tahapan.pindah()`, semua fungsi di `services/rekap.py`,
-  parser `services/impor_excel.py`, dan `services/penyimpanan.py`
+  `services/tahapan.pindah()`, `services/pemilahan.pilah()`, semua fungsi di
+  `services/rekap.py`, parser `services/impor_excel.py`, dan `services/penyimpanan.py`
   (backend S3 diuji dengan klien tiruan, jangan pernah memanggil AWS sungguhan).
 - Jalankan `python -m unittest discover tests` sebelum bilang selesai.
 
@@ -153,6 +161,7 @@ Tandai saat selesai — ini yang membuat sesi berikutnya tahu posisi.
 - [x] Fase 9 — Deploy (berkas siap, belum dijalankan di server)
 - [x] Tambahan — Susunan tim + pembuatan akun massal (`/master/tim`)
 - [x] Tambahan — Pratinjau/ubah/hapus dokumen + penyimpanan S3 opsional
+- [x] Tambahan — Pemilahan objek (bisa/tidak bisa ditindaklanjuti) + dashboard ikut
 
 ## Temuan Data yang Mengubah Angka di DESAIN_SISTEM.md
 
@@ -180,4 +189,7 @@ Diverifikasi ulang terhadap file Excel saat Fase 2 — **belum dikonfirmasi ke p
    kolom `keterangan` oleh migrasi 008.
 
 Keputusan sementara yang dipakai (bisa diubah): semua 223 baris masuk sebagai
-`objek_wakaf` dengan `is_potensi = 1`.
+`objek_wakaf`. Sejak migrasi 012 mereka masuk berstatus `belum_dipilah` —
+**bukan** langsung dihitung potensi seperti dulu; admin/korwil yang memilah mana
+yang bisa ditindaklanjuti lewat centang di `/objek`. Objek yang berkasnya sudah
+terdaftar ditandai `bisa` oleh migrasi itu sendiri.

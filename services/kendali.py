@@ -2,7 +2,8 @@
 
 Sepuluh kolom, tidak satu pun disimpan sebagai total (aturan domain #2):
 
-  0. Potensi              stok  — seluruh objek wakaf aktif di wilayah itu
+  0. Potensi              stok  — objek wakaf yang sudah dipilah 'bisa
+                                  ditindaklanjuti' (services/pemilahan)
   1. Berkas Selesai       arus  — status 'selesai', tanggal_selesai di periode
   1b Siap Diserahkan      stok  — aktif di tahapan terakhir 'penyerahan':
                                   sertipikatnya sudah terbit, tinggal serah terima
@@ -35,6 +36,12 @@ sengaja TIDAK ikut dijumlahkan ke Total Capaian. Ia dihitung dengan COUNT DISTIN
 karena satu objek bisa punya beberapa baris berkas yang dibatalkan (indeks unik
 migrasi 006 hanya mengikat berkas non-'batal'), dan tanpa DISTINCT objek seperti
 itu akan terhitung berkali-kali.
+
+Sejak migrasi 012 Potensi hanya menghitung objek berstatus 'bisa'. Dulu ia
+menghitung seluruh objek aktif, sehingga papan ini memakai basis kerja yang lebih
+besar daripada yang benar-benar bisa digarap. Objek yang belum diperiksa muncul
+di kolom Belum Dipilah — di luar Potensi, tapi tetap terlihat supaya tidak ada
+yang lupa dipilah.
 """
 import re
 
@@ -57,7 +64,7 @@ KOLOM_CAPAIAN = ("selesai", "siap_serah", "proses", "akan_didaftar", "penetapan"
                  "alih_media")
 
 # Kolom yang dijumlahkan apa adanya di baris TOTAL, di luar kolom turunan.
-KOLOM_JUMLAH = KOLOM_CAPAIAN + ("catatan_ditarik", "potensi")
+KOLOM_JUMLAH = KOLOM_CAPAIAN + ("catatan_ditarik", "potensi", "belum_dipilah")
 
 
 def periode_sekarang() -> str:
@@ -108,7 +115,10 @@ def _batas(pengguna, wilayah_id=None) -> tuple[str, list]:
 
 _HITUNG = """
     SELECT w.id, w.nama AS wilayah,
-           COUNT(DISTINCT o.id) AS potensi,
+           COUNT(DISTINCT CASE WHEN o.status_tindak_lanjut = 'bisa'
+                               THEN o.id END) AS potensi,
+           COUNT(DISTINCT CASE WHEN o.status_tindak_lanjut = 'belum_dipilah'
+                               THEN o.id END) AS belum_dipilah,
            SUM(CASE WHEN b.jenis_permohonan_kode <> 'alih_media'
                      AND b.status = 'selesai'
                      AND substr(b.tanggal_selesai, 1, 7) = ?

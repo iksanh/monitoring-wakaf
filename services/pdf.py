@@ -89,14 +89,13 @@ def rekap_harian(rekap: dict) -> bytes:
 def rekap_potensi(baris: list[dict]) -> bytes:
     penampung, doc = _dokumen("Total Potensi Sertipikat Wakaf")
     isi = _kop("TOTAL POTENSI SERTIPIKAT WAKAF")
-    data = [[b["kecamatan"], b["wilayah"], b["baru"], b["ada_hak"], b["isbat"], b["total"]]
-            for b in baris]
-    data.append(["TOTAL", "", sum(b["baru"] or 0 for b in baris),
-                 sum(b["ada_hak"] or 0 for b in baris),
-                 sum(b["isbat"] or 0 for b in baris),
-                 sum(b["total"] or 0 for b in baris)])
-    isi.append(_tabel(["Kecamatan", "Wilayah", "Baru", "Ada Hak", "Isbat", "Total"], data,
-                      lebar=[4 * cm, 3 * cm, 2.2 * cm, 2.2 * cm, 2.2 * cm, 2.2 * cm]))
+    kolom = ("baru", "ada_hak", "isbat", "total", "belum_dipilah")
+    data = [[b["kecamatan"], b["wilayah"]] + [b[k] or 0 for k in kolom] for b in baris]
+    data.append(["TOTAL", ""] + [sum(b[k] or 0 for b in baris) for k in kolom])
+    isi.append(_tabel(["Kecamatan", "Wilayah", "Baru", "Ada Hak", "Isbat", "Potensi",
+                       "Belum Dipilah"], data,
+                      lebar=[3.6 * cm, 2.6 * cm, 1.9 * cm, 1.9 * cm, 1.9 * cm, 1.9 * cm,
+                             2.4 * cm]))
     isi.append(Spacer(1, 18))
     isi.append(_tanda_tangan())
     doc.build(isi)

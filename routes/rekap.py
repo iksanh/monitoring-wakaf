@@ -65,10 +65,9 @@ async def potensi(request):
         "wilayah_id": wilayah_id, "wilayah": svc_berkas.daftar_wilayah(),
         "prioritas": prioritas,
         "total": {
-            "baru": sum(b["baru"] or 0 for b in baris),
-            "ada_hak": sum(b["ada_hak"] or 0 for b in baris),
-            "isbat": sum(b["isbat"] or 0 for b in baris),
-            "total": sum(b["total"] or 0 for b in baris),
+            kolom: sum(b[kolom] or 0 for b in baris)
+            for kolom in ("baru", "ada_hak", "isbat", "total",
+                          "belum_dipilah", "tidak_bisa", "objek")
         },
     })
 

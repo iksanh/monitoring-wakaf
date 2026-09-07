@@ -48,16 +48,21 @@ class BasisTes(unittest.TestCase):
 
     def buat_objek(self, nama="Masjid Uji", kecamatan="Suwawa", tipologi=None,
                    tipe_hak=None, rekomendasi_isbat=None, status="belum",
-                   perlu_isbat=0) -> int:
+                   perlu_isbat=0, tindak_lanjut="bisa") -> int:
+        """Bawaannya 'bisa' supaya fixture rekap langsung terhitung sebagai potensi.
+
+        Objek sungguhan lahir 'belum_dipilah'; tes yang menguji pemilahan
+        menyetel sendiri parameter ini.
+        """
         kec = self.db.ambil_satu("SELECT id FROM kecamatan WHERE nama = ?", (kecamatan,))
         urut = self.db.ambil_nilai("SELECT COUNT(*) FROM objek_wakaf", (), 0) + 1
         return self.db.jalankan(
             """INSERT INTO objek_wakaf (kode, nama_objek, kecamatan_id, tipologi_kode,
                                         tipe_hak, rekomendasi_isbat, status_sertipikat,
-                                        is_potensi, sumber_data, perlu_isbat)
-               VALUES (?, ?, ?, ?, ?, ?, ?, 1, 'uji', ?)""",
+                                        sumber_data, perlu_isbat, status_tindak_lanjut)
+               VALUES (?, ?, ?, ?, ?, ?, ?, 'uji', ?, ?)""",
             (f"WKF-UJI-{urut:03d}", nama, kec["id"], tipologi, tipe_hak,
-             rekomendasi_isbat, status, perlu_isbat),
+             rekomendasi_isbat, status, perlu_isbat, tindak_lanjut),
         )
 
     def buat_berkas(self, objek_id, jenis="pertama_kali", tahapan="permohonan",

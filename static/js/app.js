@@ -141,6 +141,65 @@
     penampil.addEventListener('close', function () { isiPenampil.textContent = ''; });
   }
 
+  // Pemilahan objek: bilah centang di daftar objek dan panel di halaman detail.
+  // Satu objek muncul dua kali di halaman daftar — sebagai kartu (HP) dan sebagai
+  // baris tabel (desktop) — jadi centang bernilai sama disamakan supaya hitungannya
+  // benar. services/pemilahan tetap membuang id kembar, ini cuma soal tampilan.
+  document.querySelectorAll('form[data-pilah]').forEach(function (form) {
+    var kotak = Array.prototype.filter.call(form.elements, function (el) {
+      return el.matches && el.matches('[data-pilih]');
+    });
+    var bilah = form.querySelector('[data-bilah]');
+    var hitung = form.querySelector('[data-jumlah-pilih]');
+    var medanAlasan = form.querySelector('[data-medan-alasan]');
+    var alasan = form.querySelector('[data-alasan]');
+    var semua = form.querySelector('[data-pilih-semua]');
+
+    function terpilih() {
+      var unik = {};
+      kotak.forEach(function (k) { if (k.checked) unik[k.value] = 1; });
+      return Object.keys(unik).length;
+    }
+
+    function perbarui() {
+      var jumlah = terpilih();
+      if (hitung) hitung.textContent = jumlah;
+      if (bilah) bilah.hidden = jumlah === 0;
+      if (semua) semua.checked = jumlah > 0 && jumlah === new Set(
+        kotak.map(function (k) { return k.value; })).size;
+    }
+
+    kotak.forEach(function (k) {
+      k.addEventListener('change', function () {
+        kotak.forEach(function (lain) {
+          if (lain !== k && lain.value === k.value) lain.checked = k.checked;
+        });
+        perbarui();
+      });
+    });
+
+    if (semua) {
+      semua.addEventListener('change', function () {
+        kotak.forEach(function (k) { k.checked = semua.checked; });
+        perbarui();
+      });
+    }
+
+    // "Tidak bisa" wajib beralasan. Medannya baru muncul saat tombolnya ditekan
+    // supaya bilahnya tetap ringkas di layar 360px.
+    form.querySelectorAll('[data-butuh-alasan]').forEach(function (tombol) {
+      tombol.addEventListener('click', function (e) {
+        if (alasan && !alasan.value.trim()) {
+          e.preventDefault();
+          if (medanAlasan) medanAlasan.hidden = false;
+          alasan.focus();
+        }
+      });
+    });
+
+    perbarui();
+  });
+
   // Ambil koordinat dari GPS perangkat (form objek wakaf & form kunjungan).
   document.querySelectorAll('[data-ambil-koordinat]').forEach(function (tombol) {
     var form = tombol.closest('form');

@@ -46,10 +46,40 @@
     <dd>{{ 'Ya — lewat Pengadilan Agama' if objek.perlu_isbat else 'Tidak' }}</dd></div>
   {{ baris('Rekomendasi Isbat', objek.rekomendasi_isbat) }}
   {{ baris('Status Sertipikat', objek.status_sertipikat) }}
-  {{ baris('Potensi', 'Ya' if objek.is_potensi else 'Tidak') }}
+  <div class="kartu-baris"><dt>Pemilahan</dt><dd>
+    {% with status = objek.status_tindak_lanjut %}
+    {% include "komponen/lencana_pilah.html" %}{% endwith %}
+    {% if objek.dipilah_pada %}<span class="lemah"> · {{ objek.dipilah_pada[:10] | tanggal }}</span>{% endif %}
+  </dd></div>
+  {% if objek.alasan_tidak_bisa %}
+  {{ baris('Alasan tidak bisa', objek.alasan_tidak_bisa) }}
+  {% endif %}
   {{ baris('Sumber Data', objek.sumber_data) }}
   {{ baris('Koordinat', (objek.latitude ~ ', ' ~ objek.longitude) if objek.latitude else None) }}
 </div>
+{% if boleh_pilah %}
+<form method="post" action="/objek/pilah" class="kartu" data-pilah>
+  <div class="kartu-judul">Pemilahan Objek</div>
+  <p class="lemah">Objek yang bisa ditindaklanjuti dihitung sebagai potensi
+    sertipikasi di dashboard dan seluruh rekap. Yang tidak bisa ditindaklanjuti
+    tetap tersimpan, hanya keluar dari angka potensi.</p>
+  <input type="hidden" name="objek_id" value="{{ objek.id }}">
+  <input type="hidden" name="kembali" value="/objek/{{ objek.id }}">
+  <label for="alasan-pilah">Alasan (wajib kalau tidak bisa ditindaklanjuti)</label>
+  <input id="alasan-pilah" name="alasan" data-alasan
+         value="{{ objek.alasan_tidak_bisa or '' }}"
+         placeholder="mis. tanah sengketa, nadzir tidak ditemukan">
+  <div class="aksi">
+    <button class="tombol" name="status" value="bisa">Bisa Ditindaklanjuti</button>
+    <button class="tombol tombol-bahaya" name="status" value="tidak_bisa"
+            data-butuh-alasan>Tidak Bisa</button>
+    {% if objek.status_tindak_lanjut != 'belum_dipilah' %}
+    <button class="tombol tombol-lain" name="status" value="belum_dipilah">Kembalikan</button>
+    {% endif %}
+  </div>
+</form>
+{% endif %}
+
 {% if objek.keterangan %}
 <div class="kartu"><div class="kartu-judul">Keterangan</div>
   <div style="white-space:pre-line">{{ objek.keterangan }}</div></div>

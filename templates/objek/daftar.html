@@ -4,7 +4,8 @@
 {# Hitung penyaring lanjutan yang sedang aktif — dipakai untuk lencana dan
    supaya lipatan terbuka sendiri saat pengguna datang dari tautan bersaring. #}
 {% set saring_lanjut = [saring.kecamatan_id, saring.desa_id, saring.tipologi_kode,
-                        saring.status_sertipikat, saring.aiw, saring.prioritas] %}
+                        saring.status_sertipikat, saring.aiw, saring.prioritas,
+                        saring.tindak_lanjut] %}
 {% set jml_lanjut = saring_lanjut | select | list | length %}
 {% set boleh_tambah = pengguna.peran in ('admin','sekretariat','korwil','petugas') %}
 
@@ -80,6 +81,15 @@
         </select>
       </div>
       <div>
+        <label for="f-tindak-lanjut">Pemilahan</label>
+        <select id="f-tindak-lanjut" name="tindak_lanjut">
+          <option value="">Semua</option>
+          <option value="belum_dipilah" {{ 'selected' if saring.tindak_lanjut == 'belum_dipilah' }}>Belum dipilah</option>
+          <option value="bisa" {{ 'selected' if saring.tindak_lanjut == 'bisa' }}>Bisa ditindaklanjuti (potensi)</option>
+          <option value="tidak_bisa" {{ 'selected' if saring.tindak_lanjut == 'tidak_bisa' }}>Tidak bisa ditindaklanjuti</option>
+        </select>
+      </div>
+      <div>
         <label for="f-prioritas">Prioritas</label>
         <select id="f-prioritas" name="prioritas">
           <option value="">Semua</option>
@@ -99,13 +109,41 @@
 
 <p class="lemah">{{ hasil.total }} objek ditemukan.</p>
 
+{% if boleh_pilah and hasil.baris %}
+{# Bilah pemilahan. Formnya membungkus kedua tampilan (kartu HP & tabel desktop);
+   hanya satu yang tampak sekaligus, jadi tidak ada centang ganda terkirim. #}
+<form method="post" action="/objek/pilah" id="form-pilah" data-pilah>
+<input type="hidden" name="kembali" value="/objek{{ ('?' ~ kueri) if kueri }}">
+<div class="bilah-pilah" data-bilah hidden>
+  <span class="bilah-hitung"><strong data-jumlah-pilih>0</strong> objek dicentang</span>
+  <div class="bilah-tombol">
+    <button class="tombol" name="status" value="bisa">Bisa ditindaklanjuti</button>
+    <button class="tombol tombol-bahaya" name="status" value="tidak_bisa"
+            data-butuh-alasan>Tidak bisa</button>
+    <button class="tombol tombol-lain" name="status" value="belum_dipilah">Kembalikan</button>
+  </div>
+  <label class="bilah-alasan" hidden data-medan-alasan>Alasan tidak bisa ditindaklanjuti
+    <input name="alasan" data-alasan
+           placeholder="mis. tanah sengketa, nadzir tidak ditemukan">
+  </label>
+</div>
+{% endif %}
+
 <div class="hanya-mobile">
   {% for o in hasil.baris %}
   <div class="kartu">
-    <div class="kartu-judul"><a href="/objek/{{ o.id }}">{{ o.nama_objek }}</a>
+    <div class="kartu-judul">
+      {% if boleh_pilah %}
+      <label class="cek-pilih"><input type="checkbox" name="objek_id" value="{{ o.id }}"
+        form="form-pilah" data-pilih aria-label="Pilih {{ o.nama_objek }}"></label>
+      {% endif %}
+      <a href="/objek/{{ o.id }}">{{ o.nama_objek }}</a>
       {% with aktif = o.is_prioritas %}
       {% include "komponen/lencana_prioritas.html" %}{% endwith %}</div>
     <div class="lemah">{{ o.kode }} · {{ o.desa_nama | kosong }}, {{ o.kecamatan_nama }}</div>
+    <div class="kartu-baris"><dt>Pemilahan</dt><dd>
+      {% with status = o.status_tindak_lanjut %}
+      {% include "komponen/lencana_pilah.html" %}{% endwith %}</dd></div>
     <div class="kartu-baris"><dt>Tipologi</dt><dd>
       {% with kode = o.tipologi_kode, nama = o.tipologi_nama %}
       {% include "komponen/lencana_tipologi.html" %}{% endwith %}</dd></div>
@@ -119,10 +157,16 @@
 
 <div class="hanya-desktop tabel-bungkus">
 <table>
-  <tr><th>Kode</th><th>Nama Objek</th><th>Desa</th><th>Kecamatan</th><th>Wakif</th>
-      <th>AIW</th><th class="angka">Luas</th><th>Tipologi</th><th>Status</th></tr>
+  <tr>{% if boleh_pilah %}<th class="kolom-cek">
+        <input type="checkbox" data-pilih-semua aria-label="Pilih semua di halaman ini"></th>{% endif %}
+      <th>Kode</th><th>Nama Objek</th><th>Desa</th><th>Kecamatan</th><th>Wakif</th>
+      <th>AIW</th><th class="angka">Luas</th><th>Tipologi</th><th>Pemilahan</th><th>Status</th></tr>
   {% for o in hasil.baris %}
   <tr>
+    {% if boleh_pilah %}
+    <td class="kolom-cek"><input type="checkbox" name="objek_id" value="{{ o.id }}"
+      form="form-pilah" data-pilih aria-label="Pilih {{ o.nama_objek }}"></td>
+    {% endif %}
     <td>{{ o.kode }}</td>
     <td><a href="/objek/{{ o.id }}">{{ o.nama_objek }}</a>
         {% with aktif = o.is_prioritas %}
@@ -134,13 +178,16 @@
     <td class="angka">{{ o.luas_persil | luas }}</td>
     <td>{% with kode = o.tipologi_kode, nama = o.tipologi_nama %}
         {% include "komponen/lencana_tipologi.html" %}{% endwith %}</td>
+    <td>{% with status = o.status_tindak_lanjut %}
+        {% include "komponen/lencana_pilah.html" %}{% endwith %}</td>
     <td>{{ o.status_sertipikat }}</td>
   </tr>
   {% else %}
-  <tr><td colspan="9" class="lemah">Tidak ada objek yang cocok.</td></tr>
+  <tr><td colspan="{{ 11 if boleh_pilah else 10 }}" class="lemah">Tidak ada objek yang cocok.</td></tr>
   {% endfor %}
 </table>
 </div>
+{% if boleh_pilah and hasil.baris %}</form>{% endif %}
 
 {% include "komponen/paginasi.html" %}
 {% endblock %}

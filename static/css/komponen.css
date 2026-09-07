@@ -343,3 +343,46 @@ td.angka, th.angka { text-align: right; }
   }
   .dok-gambar img { max-height: 300px; }
 }
+
+/* ---------- pemilahan objek ---------- */
+/* Bilah aksi centang. Lengket di bawah layar HP supaya jempol selalu bisa
+   menjangkaunya setelah menggulir daftar panjang. */
+.bilah-pilah {
+  position: sticky; bottom: 0; z-index: 5;
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3);
+  padding: var(--sp-3); margin-bottom: var(--sp-3);
+  background: var(--putih); border: 1px solid var(--hijau-garis);
+  border-radius: var(--radius-besar); box-shadow: var(--bayang-naik);
+}
+.bilah-hitung { font-size: .86rem; color: var(--teks-lemah); }
+.bilah-tombol { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-left: auto; }
+.bilah-tombol .tombol { flex: 1 1 auto; }
+.bilah-alasan { flex: 1 1 100%; margin: 0; }
+
+/* Target sentuh centang dibuat 44px lewat padding label, bukan lewat kotaknya
+   sendiri — kotak yang dibesarkan terlihat kasar di desktop. */
+.cek-pilih { display: inline-flex; align-items: center; margin: 0 var(--sp-1) 0 0; padding: 0; }
+.cek-pilih input, .kolom-cek input { width: 20px; height: 20px; min-height: 0; margin: 0; }
+.cek-pilih input { margin: calc((var(--sentuh) - 20px) / -2) var(--sp-2) calc((var(--sentuh) - 20px) / -2) 0; }
+th.kolom-cek, td.kolom-cek { width: 1%; padding-right: 0; }
+
+.batang-pilah {
+  display: flex; height: 12px; margin: var(--sp-2) 0 var(--sp-3);
+  background: var(--abu-muda); border-radius: 999px; overflow: hidden;
+}
+.batang-pilah span { display: block; }
+.batang-bisa  { background: var(--hijau); }
+.batang-tidak { background: var(--merah); }
+.batang-belum { background: var(--kuning-garis); }
+
+.batang-kunci { display: flex; flex-wrap: wrap; gap: var(--sp-3); margin: 0; }
+.batang-kunci a { display: inline-flex; align-items: center; color: var(--teks-lemah); }
+.batang-kunci a:hover { color: var(--hijau); }
+.titik { width: 8px; height: 8px; border-radius: 999px; margin-right: var(--sp-2); }
+.titik-bisa  { background: var(--hijau); }
+.titik-tidak { background: var(--merah); }
+.titik-belum { background: var(--kuning-garis); }
+
+.nilai-hijau  { color: var(--hijau); }
+.nilai-kuning { color: var(--kuning); }
+.tautan-ingat { color: var(--kuning); font-weight: 600; }

@@ -92,14 +92,12 @@ def rekap_potensi(baris: list[dict]) -> bytes:
     wb = Workbook()
     ws = wb.active
     ws.title = "Potensi"
-    isi = [[b["kecamatan"], b["wilayah"], b["baru"], b["ada_hak"], b["isbat"], b["total"]]
-           for b in baris]
-    isi.append(["TOTAL", "", sum(b["baru"] or 0 for b in baris),
-                sum(b["ada_hak"] or 0 for b in baris),
-                sum(b["isbat"] or 0 for b in baris),
-                sum(b["total"] or 0 for b in baris)])
+    kolom = ("baru", "ada_hak", "isbat", "total", "belum_dipilah", "tidak_bisa", "objek")
+    isi = [[b["kecamatan"], b["wilayah"]] + [b[k] or 0 for k in kolom] for b in baris]
+    isi.append(["TOTAL", ""] + [sum(b[k] or 0 for b in baris) for k in kolom])
     _tulis(ws, "TOTAL POTENSI SERTIPIKAT WAKAF",
-           ["Kecamatan", "Wilayah", "Baru", "Ada Hak", "Isbat Wakaf", "Total"], isi)
+           ["Kecamatan", "Wilayah", "Baru", "Ada Hak", "Isbat Wakaf", "Potensi",
+            "Belum Dipilah", "Tidak Bisa", "Jumlah Objek"], isi)
     return _byte(wb)
 
 

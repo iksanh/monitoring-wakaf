@@ -3,6 +3,15 @@ import config
 import db
 from auth import PERAN_TERBATAS_WILAYAH
 
+# Potensi = objek yang sudah dipilah dan dinyatakan BISA ditindaklanjuti.
+# Dulu penyaringnya kolom is_potensi yang diisi 1 oleh importer untuk semua baris,
+# jadi "potensi" selalu sama dengan "seluruh objek" dan tidak berarti apa-apa.
+# Sekarang penyaringnya objek_wakaf.status_tindak_lanjut, yang hanya berubah lewat
+# services/pemilahan.pilah(). Objek 'belum_dipilah' dan 'tidak_bisa' tidak pernah
+# masuk hitungan potensi, tapi tetap dilaporkan di kolomnya sendiri supaya tidak
+# ada objek yang hilang diam-diam dari rekap.
+_POTENSI = " o.status_tindak_lanjut = 'bisa' "
+
 # Klasifikasi potensi (pengganti kolom Baru / Ada Hak / Isbat di sheet POTENSI WAKAF).
 # Diturunkan dari data, bukan diketik tangan.
 #
@@ -135,15 +144,22 @@ def rekap_potensi_kecamatan(pengguna=None, wilayah_id=None,
     saring = _prioritas(prioritas)
     return db.ambil_semua(
         f"""SELECT k.id, k.nama AS kecamatan, COALESCE(w.nama, '-') AS wilayah,
-                   SUM(CASE WHEN {_KELAS_POTENSI} = 'baru' THEN 1 ELSE 0 END) AS baru,
-                   SUM(CASE WHEN {_KELAS_POTENSI} = 'ada_hak' THEN 1 ELSE 0 END) AS ada_hak,
-                   SUM(CASE WHEN {_KELAS_POTENSI} = 'isbat' THEN 1 ELSE 0 END) AS isbat,
-                   COUNT(o.id) AS total
+                   SUM(CASE WHEN {_POTENSI} AND {_KELAS_POTENSI} = 'baru'
+                            THEN 1 ELSE 0 END) AS baru,
+                   SUM(CASE WHEN {_POTENSI} AND {_KELAS_POTENSI} = 'ada_hak'
+                            THEN 1 ELSE 0 END) AS ada_hak,
+                   SUM(CASE WHEN {_POTENSI} AND {_KELAS_POTENSI} = 'isbat'
+                            THEN 1 ELSE 0 END) AS isbat,
+                   SUM(CASE WHEN {_POTENSI} THEN 1 ELSE 0 END) AS total,
+                   SUM(CASE WHEN o.status_tindak_lanjut = 'belum_dipilah'
+                            THEN 1 ELSE 0 END) AS belum_dipilah,
+                   SUM(CASE WHEN o.status_tindak_lanjut = 'tidak_bisa'
+                            THEN 1 ELSE 0 END) AS tidak_bisa,
+                   COUNT(o.id) AS objek
               FROM kecamatan k
               LEFT JOIN wilayah w ON w.id = k.wilayah_id
               LEFT JOIN objek_wakaf o
-                     ON o.kecamatan_id = k.id AND o.is_potensi = 1
-                        AND o.is_aktif = 1 {saring}
+                     ON o.kecamatan_id = k.id AND o.is_aktif = 1 {saring}
              WHERE 1=1 {batas}
              GROUP BY k.id ORDER BY w.urutan, k.nama""",
         tuple(p),
@@ -158,14 +174,20 @@ def rekap_wilayah(pengguna=None, prioritas=None) -> list[dict]:
     return db.ambil_semua(
         f"""SELECT w.id, w.nama AS wilayah,
                    COUNT(DISTINCT k.id) AS jumlah_kecamatan,
-                   COUNT(o.id) AS potensi,
-                   SUM(CASE WHEN o.status_sertipikat = 'sudah' THEN 1 ELSE 0 END) AS sudah,
-                   SUM(CASE WHEN o.status_sertipikat = 'proses' THEN 1 ELSE 0 END) AS proses
+                   SUM(CASE WHEN {_POTENSI} THEN 1 ELSE 0 END) AS potensi,
+                   SUM(CASE WHEN o.status_tindak_lanjut = 'belum_dipilah'
+                            THEN 1 ELSE 0 END) AS belum_dipilah,
+                   SUM(CASE WHEN o.status_tindak_lanjut = 'tidak_bisa'
+                            THEN 1 ELSE 0 END) AS tidak_bisa,
+                   COUNT(o.id) AS objek,
+                   SUM(CASE WHEN {_POTENSI} AND o.status_sertipikat = 'sudah'
+                            THEN 1 ELSE 0 END) AS sudah,
+                   SUM(CASE WHEN {_POTENSI} AND o.status_sertipikat = 'proses'
+                            THEN 1 ELSE 0 END) AS proses
               FROM wilayah w
               LEFT JOIN kecamatan k ON k.wilayah_id = w.id
               LEFT JOIN objek_wakaf o
-                     ON o.kecamatan_id = k.id AND o.is_potensi = 1
-                        AND o.is_aktif = 1 {saring}
+                     ON o.kecamatan_id = k.id AND o.is_aktif = 1 {saring}
              WHERE 1=1 {syarat}
              GROUP BY w.id ORDER BY w.urutan""",
         tuple(p),
@@ -267,7 +289,11 @@ def ringkasan_dashboard(pengguna=None, prioritas=None) -> dict:
     batas += _prioritas(prioritas)
     objek = db.ambil_satu(
         f"""SELECT COUNT(*) AS total,
-                   SUM(CASE WHEN o.is_potensi = 1 THEN 1 ELSE 0 END) AS potensi,
+                   SUM(CASE WHEN {_POTENSI} THEN 1 ELSE 0 END) AS potensi,
+                   SUM(CASE WHEN o.status_tindak_lanjut = 'belum_dipilah'
+                            THEN 1 ELSE 0 END) AS belum_dipilah,
+                   SUM(CASE WHEN o.status_tindak_lanjut = 'tidak_bisa'
+                            THEN 1 ELSE 0 END) AS tidak_bisa,
                    SUM(CASE WHEN o.status_sertipikat = 'sudah' THEN 1 ELSE 0 END) AS sudah,
                    SUM(CASE WHEN o.no_aiw IS NULL OR trim(o.no_aiw) IN ('','-')
                             THEN 1 ELSE 0 END) AS tanpa_aiw

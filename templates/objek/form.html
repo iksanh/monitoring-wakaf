@@ -98,8 +98,6 @@
   <label for="catatan_kua">Catatan KUA</label>
   <textarea id="catatan_kua" name="catatan_kua">{{ nilai.catatan_kua or '' }}</textarea>
 
-  <label class="cek"><input type="checkbox" name="is_potensi" value="1"
-    {{ 'checked' if nilai.is_potensi }}> Dihitung sebagai potensi sertipikasi</label>
   <label class="cek"><input type="checkbox" name="is_prioritas" value="1"
     {{ 'checked' if nilai.is_prioritas }}> Berkas prioritas</label>
   <p class="lemah">Objek bertanda prioritas naik ke urutan teratas daftar objek dan

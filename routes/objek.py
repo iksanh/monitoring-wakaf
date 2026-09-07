@@ -6,6 +6,7 @@ import auth
 import web
 from services import audit, berkas as svc_berkas, kunjungan as svc_kunjungan
 from services import dokumen as svc_dokumen, objek as svc
+from services import pemilahan as svc_pilah
 
 
 def _saring_dari(request) -> dict:
@@ -16,6 +17,7 @@ def _saring_dari(request) -> dict:
         "tipologi_kode": web.teks_atau_none(p.get("tipologi_kode")),
         "status_sertipikat": web.teks_atau_none(p.get("status_sertipikat")),
         "aiw": web.teks_atau_none(p.get("aiw")),
+        "tindak_lanjut": web.teks_atau_none(p.get("tindak_lanjut")),
         "prioritas": web.teks_atau_none(p.get("prioritas")),
         "q": web.teks_atau_none(p.get("q")),
     }
@@ -48,7 +50,6 @@ async def _form_data(request) -> dict:
         "url_maps": ambil("url_maps"),
         "url_dokumen": ambil("url_dokumen"),
         "status_sertipikat": ambil("status_sertipikat") or "belum",
-        "is_potensi": 1 if form.get("is_potensi") else 0,
         "perlu_isbat": 1 if form.get("perlu_isbat") else 0,
         "is_prioritas": 1 if form.get("is_prioritas") else 0,
     }
@@ -67,6 +68,8 @@ async def daftar(request):
         "desa": svc.daftar_desa(pengguna),
         "tipologi": svc.daftar_tipologi(),
         "kueri": request.url.query,
+        "boleh_pilah": svc_pilah.boleh_memilah(pengguna),
+        "LABEL_PILAH": svc_pilah.LABEL,
     })
 
 
@@ -85,6 +88,8 @@ async def detail(request):
         "kunjungan": svc_kunjungan.per_objek(objek["id"]),
         "riwayat": audit.riwayat("objek_wakaf", objek["id"]),
         "jenis_permohonan": svc_berkas.daftar_jenis(),
+        "boleh_pilah": svc_pilah.boleh_memilah(pengguna),
+        "LABEL_PILAH": svc_pilah.LABEL,
     })
 
 
@@ -101,7 +106,7 @@ async def baru(request):
         return web.render(request, "objek/form.html", _konteks_form(
             pengguna, data, galat=galat), status=400)
     return web.render(request, "objek/form.html", _konteks_form(pengguna, {
-        "status_sertipikat": "belum", "is_potensi": 1}))
+        "status_sertipikat": "belum"}))
 
 
 @auth.butuh_peran("admin", "sekretariat", "korwil", "petugas")
@@ -124,6 +129,42 @@ async def ubah(request):
     return web.render(request, "objek/form.html", _konteks_form(pengguna, objek, objek=objek))
 
 
+@auth.butuh_peran(*svc_pilah.PERAN_PEMILAH)
+async def pilah(request):
+    """Tandai satu atau banyak objek sekaligus: bisa / tidak bisa ditindaklanjuti.
+
+    Dipakai dua tempat: bilah centang di daftar objek, dan panel di halaman
+    detail. Keduanya kembali ke halaman asalnya lengkap dengan penyaringnya.
+    """
+    pengguna = request.state.pengguna
+    form = await request.form()
+    kembali = _kembali_sah(form.get("kembali"))
+    try:
+        hasil = svc_pilah.pilah(form.getlist("objek_id"),
+                                web.teks_atau_none(form.get("status")) or "",
+                                pengguna, form.get("alasan"))
+    except svc_pilah.GalatPemilahan as galat:
+        web.pesan(request, str(galat))
+        return RedirectResponse(kembali, status_code=303)
+
+    catatan = f"{hasil['diubah']} objek ditandai “{svc_pilah.LABEL[hasil['status']]}”."
+    if hasil["tetap"]:
+        catatan += f" {hasil['tetap']} sudah bertanda itu sebelumnya."
+    if hasil["dilewati"]:
+        catatan += f" {hasil['dilewati']} dilewati karena di luar wilayah Anda."
+    web.pesan(request, catatan)
+    return RedirectResponse(kembali, status_code=303)
+
+
+def _kembali_sah(nilai) -> str:
+    """Batasi tujuan redirect ke halaman objek saja — jangan percaya form."""
+    tujuan = (nilai or "").strip()
+    if tujuan.startswith("/objek/") and tujuan[7:].isdigit():
+        return tujuan
+    kueri = tujuan[len("/objek?"):] if tujuan.startswith("/objek?") else ""
+    return f"/objek?{kueri}" if kueri else "/objek"
+
+
 def _konteks_form(pengguna, nilai, galat=None, objek=None) -> dict:
     return {
         "nilai": nilai,
@@ -138,6 +179,7 @@ def _konteks_form(pengguna, nilai, galat=None, objek=None) -> dict:
 rute = [
     Route("/objek", daftar),
     Route("/objek/baru", baru, methods=["GET", "POST"]),
+    Route("/objek/pilah", pilah, methods=["POST"]),
     Route("/objek/{id:int}", detail),
     Route("/objek/{id:int}/ubah", ubah, methods=["GET", "POST"]),
 ]

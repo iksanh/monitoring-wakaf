@@ -33,7 +33,6 @@ class TesPrioritas(BasisTes):
             "kecamatan_id": self.db.ambil_nilai(
                 "SELECT id FROM kecamatan WHERE nama = 'Suwawa'"),
             "status_sertipikat": "belum",
-            "is_potensi": 1,
             "perlu_isbat": 0,
             "is_prioritas": 0,
         }

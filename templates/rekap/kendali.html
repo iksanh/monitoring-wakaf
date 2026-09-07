@@ -23,7 +23,7 @@
 
 <div class="petak">
   <div class="kartu"><div class="petak-nilai">{{ papan.total.potensi }}</div>
-    <div class="petak-label">Potensi (seluruh objek wakaf)</div></div>
+    <div class="petak-label">Potensi (bisa ditindaklanjuti)</div></div>
   <div class="kartu"><div class="petak-nilai">{{ papan.total.total_capaian }}</div>
     <div class="petak-label">Total capaian {{ papan.label_periode }}</div></div>
   <div class="kartu"><div class="petak-nilai">{{ papan.total.siap_serah }}</div>
@@ -43,6 +43,7 @@
   <tr>
     <th>Wilayah</th>
     <th class="angka">Potensi</th>
+    <th class="angka">Belum Dipilah</th>
     <th class="angka">Berkas Selesai</th>
     <th class="angka">Siap Diserahkan</th>
     <th class="angka">Berkas dalam Proses</th>
@@ -57,6 +58,7 @@
   <tr>
     <td>{{ b.wilayah }}</td>
     <td class="angka">{{ b.potensi }}</td>
+    <td class="angka">{{ b.belum_dipilah }}</td>
     <td class="angka"><a href="/berkas?wilayah_id={{ b.id }}&status=selesai">{{ b.selesai }}</a></td>
     <td class="angka"><a href="/berkas?wilayah_id={{ b.id }}&tahapan_kode=penyerahan">{{ b.siap_serah }}</a></td>
     <td class="angka"><a href="/berkas?wilayah_id={{ b.id }}&status=aktif">{{ b.proses }}</a></td>
@@ -71,6 +73,7 @@
   <tr>
     <th>TOTAL</th>
     <th class="angka">{{ papan.total.potensi }}</th>
+    <th class="angka">{{ papan.total.belum_dipilah }}</th>
     <th class="angka">{{ papan.total.selesai }}</th>
     <th class="angka">{{ papan.total.siap_serah }}</th>
     <th class="angka">{{ papan.total.proses }}</th>
@@ -92,6 +95,7 @@
       <span class="lencana {{ 't-merah' if b.selisih < 0 else 't-hijau' }}">selisih {{ b.selisih }}</span>
     </div>
     <div class="kartu-baris"><dt>Potensi</dt><dd>{{ b.potensi }}</dd></div>
+  <div class="kartu-baris"><dt>Belum dipilah</dt><dd>{{ b.belum_dipilah }}</dd></div>
     <div class="kartu-baris"><dt>Berkas selesai</dt><dd>{{ b.selesai }}</dd></div>
     <div class="kartu-baris"><dt>Siap diserahkan</dt><dd>{{ b.siap_serah }}</dd></div>
     <div class="kartu-baris"><dt>Dalam proses</dt><dd>{{ b.proses }}</dd></div>
@@ -107,7 +111,11 @@
 
 <h2>Cara Angka Ini Dihitung</h2>
 <div class="kartu lemah">
-  <p><strong>Potensi</strong> = seluruh objek wakaf aktif di wilayah itu, berapa pun
+  <p><strong>Belum Dipilah</strong> = objek yang belum diperiksa bisa/tidaknya
+     ditindaklanjuti. Angka ini di luar Potensi — selama masih ada isinya, basis
+     kerja wilayah itu belum lengkap.</p>
+  <p><strong>Potensi</strong> = objek wakaf yang sudah ditandai bisa
+     ditindaklanjuti di wilayah itu, berapa pun
      tahapannya dan termasuk yang belum punya berkas sama sekali. Ini basis kerja,
      bukan capaian, jadi sengaja <em>tidak</em> ikut dijumlahkan ke Total Capaian —
      ia angka pembanding: dari sekian potensi, sekian yang sudah tergarap.

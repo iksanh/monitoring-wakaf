@@ -14,14 +14,48 @@
   <a href="/">Tampilkan semua</a></div>
 {% endif %}
 
+{% set o = ringkasan.objek %}
+{% set belum = o.belum_dipilah or 0 %}
+{% if belum %}
+<div class="notif notif-ingat"><strong>{{ belum }} objek belum dipilah.</strong>
+  Objek baru dihitung sebagai potensi sertipikasi setelah ditandai
+  <em>bisa ditindaklanjuti</em>, jadi angka di bawah belum lengkap.
+  <a href="/objek?tindak_lanjut=belum_dipilah">Pilah sekarang →</a></div>
+{% endif %}
+
 <div class="petak">
-  <div class="kartu"><div class="petak-nilai">{{ ringkasan.objek.total or 0 }}</div>
+  <div class="kartu"><div class="petak-nilai">{{ o.total or 0 }}</div>
     <div class="petak-label">Objek wakaf</div></div>
-  <div class="kartu"><div class="petak-nilai">{{ ringkasan.objek.potensi or 0 }}</div>
-    <div class="petak-label">Potensi sertipikasi</div></div>
+  <div class="kartu"><div class="petak-nilai nilai-hijau">{{ o.potensi or 0 }}</div>
+    <div class="petak-label">Potensi — bisa ditindaklanjuti</div></div>
+  <div class="kartu"><div class="petak-nilai">{{ o.tidak_bisa or 0 }}</div>
+    <div class="petak-label">Tidak bisa ditindaklanjuti</div></div>
+  <div class="kartu"><div class="petak-nilai {{ 'nilai-kuning' if belum }}">{{ belum }}</div>
+    <div class="petak-label">Belum dipilah</div></div>
+</div>
+
+{# Batang pemilahan: sekali lihat ketahuan seberapa jauh pemilahannya jalan. #}
+{% if o.total %}
+<div class="kartu">
+  <div class="kartu-judul">Pemilahan Objek</div>
+  <div class="batang-pilah" role="img"
+       aria-label="{{ o.potensi or 0 }} bisa, {{ o.tidak_bisa or 0 }} tidak bisa, {{ belum }} belum dipilah">
+    <span class="batang-bisa" style="width: {{ (o.potensi or 0) / o.total * 100 }}%"></span>
+    <span class="batang-tidak" style="width: {{ (o.tidak_bisa or 0) / o.total * 100 }}%"></span>
+    <span class="batang-belum" style="width: {{ belum / o.total * 100 }}%"></span>
+  </div>
+  <p class="lemah batang-kunci">
+    <a href="/objek?tindak_lanjut=bisa"><span class="titik titik-bisa"></span>Bisa {{ o.potensi or 0 }}</a>
+    <a href="/objek?tindak_lanjut=tidak_bisa"><span class="titik titik-tidak"></span>Tidak bisa {{ o.tidak_bisa or 0 }}</a>
+    <a href="/objek?tindak_lanjut=belum_dipilah"><span class="titik titik-belum"></span>Belum dipilah {{ belum }}</a>
+  </p>
+</div>
+{% endif %}
+
+<div class="petak">
   <div class="kartu"><div class="petak-nilai">{{ ringkasan.berkas_aktif }}</div>
     <div class="petak-label">Berkas aktif</div></div>
-  <div class="kartu"><div class="petak-nilai">{{ ringkasan.objek.tanpa_aiw or 0 }}</div>
+  <div class="kartu"><div class="petak-nilai">{{ o.tanpa_aiw or 0 }}</div>
     <div class="petak-label">Belum ada AIW</div></div>
 </div>
 
@@ -80,11 +114,13 @@
 <div class="tabel-bungkus">
 <table>
   <tr><th>Wilayah</th><th class="angka">Kecamatan</th><th class="angka">Potensi</th>
-      <th class="angka">Proses</th><th class="angka">Sudah</th></tr>
+      <th class="angka">Proses</th><th class="angka">Sudah</th>
+      <th class="angka">Belum dipilah</th></tr>
   {% for w in wilayah %}
   <tr><td>{{ w.wilayah }}</td><td class="angka">{{ w.jumlah_kecamatan }}</td>
-      <td class="angka">{{ w.potensi }}</td><td class="angka">{{ w.proses or 0 }}</td>
-      <td class="angka">{{ w.sudah or 0 }}</td></tr>
+      <td class="angka">{{ w.potensi or 0 }}</td><td class="angka">{{ w.proses or 0 }}</td>
+      <td class="angka">{{ w.sudah or 0 }}</td>
+      <td class="angka">{{ w.belum_dipilah or 0 }}</td></tr>
   {% endfor %}
 </table>
 </div>

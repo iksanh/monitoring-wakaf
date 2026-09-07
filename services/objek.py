@@ -2,15 +2,17 @@
 import config
 import db
 from auth import PERAN_TERBATAS_WILAYAH
-from services import audit
+from services import audit, pemilahan
 
 KOLOM_ISI = (
     "nama_objek", "desa_id", "kecamatan_id", "nama_wakif", "nama_nadzir", "no_aiw",
     "tanggal_aiw", "jenis_alas_hak", "tipe_hak", "nib", "luas_persil",
     "kecamatan_kkp", "desa_kkp", "rtrw", "tipologi_kode", "rekomendasi_isbat",
     "keterangan", "catatan_kua", "latitude", "longitude", "url_maps", "url_dokumen",
-    "status_sertipikat", "is_potensi", "perlu_isbat", "is_prioritas",
+    "status_sertipikat", "perlu_isbat", "is_prioritas",
 )
+# status_tindak_lanjut sengaja di luar KOLOM_ISI: kolom itu hanya boleh ditulis
+# services/pemilahan.pilah(), bukan lewat form ubah objek biasa.
 
 _PILIH = """
     SELECT o.*, k.nama AS kecamatan_nama, d.nama AS desa_nama,
@@ -66,6 +68,9 @@ def cari(pengguna, saring: dict, halaman: int = 1,
         syarat.append("o.no_aiw IS NOT NULL AND trim(o.no_aiw) NOT IN ('', '-')")
     elif saring.get("aiw") == "belum":
         syarat.append("(o.no_aiw IS NULL OR trim(o.no_aiw) IN ('', '-'))")
+    if saring.get("tindak_lanjut") in pemilahan.STATUS:
+        syarat.append("o.status_tindak_lanjut = ?")
+        params.append(saring["tindak_lanjut"])
     if saring.get("prioritas") == "ya":
         syarat.append("o.is_prioritas = 1")
     elif saring.get("prioritas") == "tidak":

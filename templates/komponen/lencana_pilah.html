@@ -1,0 +1,8 @@
+{# Lencana status pemilahan. Butuh variabel `status` (dan `LABEL_PILAH` dari route). #}
+{% if status == 'bisa' %}
+<span class="lencana t-hijau" title="Bisa ditindaklanjuti — dihitung sebagai potensi">Potensi</span>
+{% elif status == 'tidak_bisa' %}
+<span class="lencana t-merah" title="Sudah dipilah: tidak bisa ditindaklanjuti">Tidak bisa</span>
+{% else %}
+<span class="lencana t-kuning" title="Belum diperiksa — belum dihitung sebagai potensi">Belum dipilah</span>
+{% endif %}
