@@ -90,6 +90,7 @@ async def detail(request):
         "jenis_permohonan": svc_berkas.daftar_jenis(),
         "boleh_pilah": svc_pilah.boleh_memilah(pengguna),
         "LABEL_PILAH": svc_pilah.LABEL,
+        "alasan_belum_bisa": svc_berkas.alasan_belum_bisa(objek),
     })
 
 

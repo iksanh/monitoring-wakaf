@@ -6,20 +6,30 @@
 <p class="lemah">{{ objek.kode }} · {{ objek.desa_nama | kosong }}, {{ objek.kecamatan_nama }}
   {% if objek.wilayah_nama %}· {{ objek.wilayah_nama }}{% endif %}</p>
 
+{# Petugas loket hanya menerima permohonan: boleh mendaftarkan berkas, tidak
+   mengubah data objek, mengunggah dokumen, atau mencatat kunjungan. #}
+{% set boleh_ubah = pengguna.peran in ('admin','sekretariat','korwil','petugas') %}
+{% set boleh_daftar = pengguna.peran in PERAN_PENDAFTAR %}
+{% set bisa_didaftarkan = objek.status_tindak_lanjut == 'bisa' %}
+
 <div class="aksi">
-  {% if pengguna.peran != 'pimpinan' %}
+  {% if boleh_ubah %}
   <a class="tombol" href="/objek/{{ objek.id }}/ubah">Ubah</a>
   {% endif %}
   {% set berkas_ada = berkas | rejectattr('status', 'equalto', 'batal') | list | first %}
   {% if berkas_ada %}
   <a class="tombol tombol-lain" href="/berkas/{{ berkas_ada.id }}">Lihat Berkas</a>
-  {% elif pengguna.peran in ('admin','sekretariat','korwil') %}
+  {% elif boleh_daftar and bisa_didaftarkan %}
   <a class="tombol tombol-lain" href="/objek/{{ objek.id }}/berkas/baru">Buat Berkas</a>
   {% endif %}
   {% if objek.url_maps %}
   <a class="tombol tombol-lain" href="{{ objek.url_maps }}" target="_blank" rel="noopener">Peta</a>
   {% endif %}
 </div>
+
+{% if boleh_daftar and not berkas_ada and not bisa_didaftarkan %}
+<div class="notif notif-ingat">{{ alasan_belum_bisa }}</div>
+{% endif %}
 
 <h2>Data Objek</h2>
 <div class="kartu">
@@ -104,7 +114,7 @@
 <h2 id="dokumen">Dokumen</h2>
 {% include "komponen/daftar_dokumen.html" %}
 
-{% if pengguna.peran != 'pimpinan' %}
+{% if boleh_ubah %}
 <form method="post" action="/objek/{{ objek.id }}/dokumen" enctype="multipart/form-data" class="kartu">
   <label for="jenis">Jenis dokumen</label>
   <input id="jenis" name="jenis" placeholder="mis. AIW, foto lokasi, sertipikat">
@@ -128,7 +138,7 @@
 <div class="kartu"><p class="lemah">Belum ada kunjungan tercatat.</p></div>
 {% endfor %}
 
-{% if pengguna.peran != 'pimpinan' %}
+{% if boleh_ubah %}
 <form method="post" action="/objek/{{ objek.id }}/kunjungan" class="kartu"
       data-draft="kunjungan-{{ objek.id }}">
   <label for="tanggal">Tanggal kunjungan</label>

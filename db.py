@@ -58,6 +58,40 @@ def jalankan(sql: str, params=()) -> int:
         return kur.lastrowid
 
 
+def _jalankan_migrasi(kon, nama: str, isi: str) -> None:
+    """Jalankan satu berkas migrasi dalam satu transaksi.
+
+    foreign_keys dimatikan selama migrasi jalan. Membangun ulang tabel — satu-
+    satunya cara SQLite mengubah CHECK constraint — berarti DROP TABLE induk yang
+    masih ditunjuk tabel anak, dan itu selalu ditolak selama penegakan FK menyala.
+    PRAGMA-nya tidak bisa diubah dari dalam transaksi, jadi harus di luar BEGIN.
+    (PRAGMA defer_foreign_keys tidak menolong: penghitung pelanggarannya sudah
+    naik saat DROP dan tidak turun lagi meski tabel penggantinya dibuat.)
+
+    Gantinya, PRAGMA foreign_key_check dijalankan sebelum COMMIT. Kalau migrasi
+    meninggalkan baris yatim, transaksinya dibatalkan — jadi mematikan penegakan
+    FK di sini tidak berarti kehilangan jaring pengamannya.
+    """
+    kon.execute("PRAGMA foreign_keys=OFF")
+    try:
+        # executescript menutup transaksi yang menggantung sebelum jalan, jadi
+        # BEGIN di bawah ini yang berlaku. COMMIT sengaja tidak ikut di skrip —
+        # foreign_key_check harus sempat jalan sebelum perubahannya dikunci.
+        kon.executescript("BEGIN;\n" + isi)
+        yatim = kon.execute("PRAGMA foreign_key_check").fetchall()
+        if yatim:
+            raise RuntimeError(
+                f"meninggalkan baris yatim di tabel: "
+                + ", ".join(sorted({b[0] for b in yatim}))
+            )
+        kon.execute("COMMIT")
+    except Exception as galat:
+        kon.rollback()
+        raise RuntimeError(f"Migrasi gagal: {nama} — {galat}") from galat
+    finally:
+        kon.execute("PRAGMA foreign_keys=ON")
+
+
 def siapkan() -> list[str]:
     """Jalankan migrasi yang belum pernah dijalankan. Kembalikan daftar versi baru."""
     Path(config.DB_PATH).parent.mkdir(parents=True, exist_ok=True)
@@ -77,11 +111,7 @@ def siapkan() -> list[str]:
             if berkas.name in sudah:
                 continue
             isi = berkas.read_text(encoding="utf-8")
-            try:
-                kon.executescript("BEGIN;\n" + isi + "\nCOMMIT;")
-            except Exception:
-                kon.rollback()
-                raise RuntimeError(f"Migrasi gagal: {berkas.name}")
+            _jalankan_migrasi(kon, berkas.name, isi)
             kon.execute("INSERT INTO skema_versi (versi) VALUES (?)", (berkas.name,))
             kon.commit()
             baru.append(berkas.name)

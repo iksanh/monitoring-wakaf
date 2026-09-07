@@ -26,6 +26,43 @@ class BerkasGanda(Exception):
     """Objek ini sudah punya berkas — tidak boleh dibuatkan berkas kedua."""
 
 
+class ObjekBelumBisaDidaftarkan(Exception):
+    """Objeknya belum dipilah, atau sudah dipilah sebagai tidak bisa ditindaklanjuti."""
+
+
+def alasan_belum_bisa(objek) -> str | None:
+    """Kenapa objek ini belum boleh didaftarkan. None berarti boleh.
+
+    Hanya objek berstatus 'bisa' yang boleh jadi berkas permohonan, dan itu
+    berlaku untuk semua peran — bukan cuma loket. Berkas yang lahir dari objek
+    yang belum diperiksa akan mengacaukan rekap potensi, karena angkanya dihitung
+    dari status pemilahan yang sama. Pemilahannya lewat services/pemilahan.pilah().
+    """
+    status = objek["status_tindak_lanjut"]
+    if status == "bisa":
+        return None
+    if status == "tidak_bisa":
+        alasan = objek["alasan_tidak_bisa"] or "tanpa alasan tercatat"
+        return (f"Objek ini sudah ditandai tidak bisa ditindaklanjuti "
+                f"({alasan}), jadi tidak bisa didaftarkan. Kalau keadaannya "
+                f"sudah berubah, minta admin atau koordinator wilayah mengubah "
+                f"pemilahannya dulu.")
+    return ("Objek ini belum dipilah, jadi belum bisa didaftarkan. Admin atau "
+            "koordinator wilayah harus menandainya “bisa ditindaklanjuti” dulu.")
+
+
+def _periksa_boleh_didaftarkan(kon, objek_id: int) -> None:
+    objek = kon.execute(
+        "SELECT status_tindak_lanjut, alasan_tidak_bisa FROM objek_wakaf WHERE id = ?",
+        (objek_id,),
+    ).fetchone()
+    if not objek:
+        raise ObjekBelumBisaDidaftarkan("Objek wakaf tidak ditemukan.")
+    galat = alasan_belum_bisa(objek)
+    if galat:
+        raise ObjekBelumBisaDidaftarkan(galat)
+
+
 def batas_wilayah(pengguna) -> tuple[str, list]:
     if pengguna and pengguna["peran"] in PERAN_TERBATAS_WILAYAH:
         return (" AND k.wilayah_id = ? ", [pengguna["wilayah_id"] or -1])
@@ -137,6 +174,7 @@ def buat(data: dict, pengguna_id: int) -> int:
         # IMMEDIATE: kunci penulis sejak awal supaya dua permintaan bersamaan
         # tidak sama-sama lolos pemeriksaan duplikat di bawah ini.
         kon.execute("BEGIN IMMEDIATE")
+        _periksa_boleh_didaftarkan(kon, data["objek_wakaf_id"])
         ada = berkas_penghalang(data["objek_wakaf_id"], kon)
         if ada:
             raise BerkasGanda(

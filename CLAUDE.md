@@ -31,6 +31,11 @@ Konsekuensi yang harus dipatuhi:
   JavaScript hanya vanilla untuk hal kecil (toggle, konfirmasi hapus, draft offline).
 - **CSS ditulis tangan** di `static/css/`. Tidak ada Tailwind/Bootstrap CDN.
 - **Session: `SessionMiddleware`** dari Starlette (backend `itsdangerous`).
+- **Peran** ada di `auth.PERAN_TERSEDIA` DAN di CHECK constraint `pengguna.peran`.
+  Menambah peran berarti membangun ulang tabel `pengguna` lewat migrasi baru —
+  SQLite tidak bisa mengubah CHECK dengan ALTER TABLE. `petugas_loket` tidak
+  dibatasi wilayah; `auth.PERAN_PENDAFTAR` mendaftar siapa yang boleh membuat
+  berkas.
 - **Hash sandi: `hashlib.pbkdf2_hmac`** dari stdlib (bcrypt tidak ada di requirements).
 - **PDF: reportlab `platypus`.** Excel: `pandas` untuk baca, `openpyxl` untuk tulis.
 - **Berkas unggahan lewat `services/penyimpanan.py`**, jangan sentuh disk langsung.
@@ -60,6 +65,10 @@ Konsekuensi yang harus dipatuhi:
   yang belum pernah dijalankan, catat versinya, `PRAGMA journal_mode=WAL`,
   `PRAGMA foreign_keys=ON`.
 - **Jangan pernah edit file migrasi yang sudah pernah jalan.** Buat file baru.
+- `db._jalankan_migrasi()` mematikan `foreign_keys` selama satu berkas migrasi
+  jalan (perlu untuk membangun ulang tabel), lalu menjalankan
+  `PRAGMA foreign_key_check` sebelum COMMIT — migrasi yang meninggalkan baris
+  yatim dibatalkan.
 
 ## Aturan Domain — WAJIB
 
@@ -100,6 +109,11 @@ Konsekuensi yang harus dipatuhi:
     dilaporkan di kolom sendiri di tiap rekap supaya tidak hilang diam-diam.
     Yang boleh memilah: `admin` dan `korwil` (korwil hanya wilayahnya, ditegakkan
     di service). Importer Excel membiarkan objek baru `belum_dipilah`.
+11. **Hanya objek berstatus `bisa` yang boleh didaftarkan jadi berkas.**
+    Ditegakkan di `services/berkas.buat()` (raise `ObjekBelumBisaDidaftarkan`),
+    berlaku untuk semua peran — bukan cuma loket. Route mencegatnya lebih awal
+    supaya form pendaftaran tidak sempat tampil; pesannya dari satu tempat,
+    `services/berkas.alasan_belum_bisa()`.
 
 ## UI
 
@@ -113,7 +127,8 @@ Konsekuensi yang harus dipatuhi:
 ## Testing
 
 - `tests/` pakai `unittest` stdlib. Wajib ada tes untuk:
-  `services/tahapan.pindah()`, `services/pemilahan.pilah()`, semua fungsi di
+  `services/tahapan.pindah()`, `services/pemilahan.pilah()`,
+  aturan pendaftaran di `services/berkas.buat()`, semua fungsi di
   `services/rekap.py`, parser `services/impor_excel.py`, dan `services/penyimpanan.py`
   (backend S3 diuji dengan klien tiruan, jangan pernah memanggil AWS sungguhan).
 - Jalankan `python -m unittest discover tests` sebelum bilang selesai.
@@ -162,6 +177,7 @@ Tandai saat selesai — ini yang membuat sesi berikutnya tahu posisi.
 - [x] Tambahan — Susunan tim + pembuatan akun massal (`/master/tim`)
 - [x] Tambahan — Pratinjau/ubah/hapus dokumen + penyimpanan S3 opsional
 - [x] Tambahan — Pemilahan objek (bisa/tidak bisa ditindaklanjuti) + dashboard ikut
+- [x] Tambahan — Peran `petugas_loket` + hanya objek `bisa` yang boleh didaftarkan
 
 ## Temuan Data yang Mengubah Angka di DESAIN_SISTEM.md
 

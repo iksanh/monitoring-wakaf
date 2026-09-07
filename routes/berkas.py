@@ -55,7 +55,7 @@ async def detail(request):
     })
 
 
-@auth.butuh_peran("admin", "sekretariat", "korwil")
+@auth.butuh_peran(*auth.PERAN_PENDAFTAR)
 async def baru(request):
     pengguna = request.state.pengguna
     objek = svc_objek.ambil(int(request.path_params["id"]))
@@ -69,6 +69,13 @@ async def baru(request):
     if ada:
         web.pesan(request, "Objek ini sudah punya berkas — dibuka berkas yang ada.")
         return RedirectResponse(f"/berkas/{ada['id']}", status_code=303)
+
+    # Hanya objek yang sudah dipilah 'bisa ditindaklanjuti' yang boleh didaftarkan.
+    # Dicegat sebelum formnya tampil supaya petugas loket tidak mengetik satu
+    # halaman penuh baru ditolak. services/berkas.buat() memeriksanya lagi.
+    if objek["status_tindak_lanjut"] != "bisa":
+        web.pesan(request, svc.alasan_belum_bisa(objek))
+        return RedirectResponse(f"/objek/{objek['id']}", status_code=303)
 
     if request.method == "POST":
         form = await request.form()
@@ -89,8 +96,9 @@ async def baru(request):
                 "hari_ini": config.hari_ini_iso()}, status=400)
         try:
             berkas_id = svc.buat(data, pengguna["id"])
-        except svc.BerkasGanda as galat:
-            # Bisa kejadian kalau dua orang mengirim form bersamaan.
+        except (svc.BerkasGanda, svc.ObjekBelumBisaDidaftarkan) as galat:
+            # Bisa kejadian kalau dua orang mengirim form bersamaan, atau kalau
+            # objeknya baru saja dipilah ulang selagi formnya terbuka.
             return web.render(request, "berkas/form.html", {
                 "objek": objek, "jenis": svc.daftar_jenis(),
                 "petugas": svc.daftar_petugas(), "nilai": data,

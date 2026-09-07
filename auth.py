@@ -13,16 +13,25 @@ import db
 _ITERASI = 260_000
 _ALGO = "sha256"
 
-PERAN_TERSEDIA = ("admin", "sekretariat", "korwil", "petugas", "pimpinan")
+PERAN_TERSEDIA = ("admin", "sekretariat", "korwil", "petugas", "petugas_loket",
+                  "pimpinan")
 LABEL_PERAN = {
     "admin": "Administrator",
     "sekretariat": "Sekretariat",
     "korwil": "Koordinator Wilayah",
     "petugas": "Petugas Lapangan",
+    "petugas_loket": "Petugas Loket",
     "pimpinan": "Pimpinan",
 }
 # Peran yang datanya dibatasi wilayahnya sendiri.
+#
+# petugas_loket sengaja TIDAK di sini: loket adalah satu meja di kantor yang
+# melayani seluruh kabupaten, bukan satu wilayah tim. Kalau dibatasi wilayah, ia
+# tidak bisa menerima permohonan dari kecamatan di luar wilayahnya sendiri.
 PERAN_TERBATAS_WILAYAH = ("korwil", "petugas")
+
+# Peran yang boleh mendaftarkan objek wakaf jadi berkas permohonan di loket.
+PERAN_PENDAFTAR = ("admin", "sekretariat", "korwil", "petugas_loket")
 
 
 def buat_hash(sandi: str) -> str:
