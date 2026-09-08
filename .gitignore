@@ -10,3 +10,4 @@ __pycache__/
 *.pyc
 .env
 PROMPT_CLAUDE_CODE.md
+Panduan-*.pdf
