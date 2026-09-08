@@ -386,3 +386,23 @@ th.kolom-cek, td.kolom-cek { width: 1%; padding-right: 0; }
 .nilai-hijau  { color: var(--hijau); }
 .nilai-kuning { color: var(--kuning); }
 .tautan-ingat { color: var(--kuning); font-weight: 600; }
+
+/* ---------- koreksi berkas (jenis permohonan & tahapan) ---------- */
+/* Disembunyikan di balik <details> dan diberi nada kuning: bukan perbaikan
+   salah ketik biasa, jadi jangan sampai kesenggol saat mengubah nomor berkas. */
+.koreksi {
+  margin-top: var(--sp-4); padding: var(--sp-3);
+  background: var(--kuning-muda); border: 1px solid var(--kuning-garis);
+  border-radius: var(--radius);
+}
+.koreksi > summary {
+  display: flex; align-items: center; gap: var(--sp-2);
+  min-height: var(--sentuh); font-size: .88rem; font-weight: 600; color: var(--kuning);
+  cursor: pointer; list-style: none; user-select: none;
+}
+.koreksi > summary::-webkit-details-marker { display: none; }
+.koreksi > summary::before { content: "\25B8"; display: inline-block; transition: transform .15s ease; }
+.koreksi[open] > summary::before { transform: rotate(90deg); }
+.koreksi > summary:focus-visible { outline: 2px solid var(--kuning); border-radius: var(--radius); }
+.koreksi[open] > summary { border-bottom: 1px solid var(--kuning-garis); padding-bottom: var(--sp-2); }
+.koreksi > label:first-of-type { margin-top: var(--sp-2); }

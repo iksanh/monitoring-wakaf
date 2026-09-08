@@ -6,6 +6,7 @@ import auth
 import config
 import web
 from services import audit, berkas as svc, berkas_aksi as svc_aksi
+from services import berkas_koreksi as svc_koreksi
 from services import ceklis as svc_ceklis
 from services import dokumen as svc_dokumen, kunjungan as svc_kunjungan
 from services import objek as svc_objek, tahapan as svc_tahapan
@@ -116,8 +117,10 @@ async def baru(request):
 async def ubah(request):
     """Perbaiki data administratif berkas — terutama nomor berkas yang salah ketik.
 
-    Tahapan, status, dan jenis permohonan tidak ada di sini; masing-masing punya
-    jalurnya sendiri. Lihat catatan di services/berkas.KOLOM_UBAH.
+    Status tidak ada di sini; jalurnya "Batalkan pendaftaran" yang wajib beralasan.
+    Jenis permohonan dan tahapan ada, tapi hanya untuk auth.PERAN_KOREKSI_BERKAS
+    dan lewat services/berkas_koreksi — bukan lewat services/berkas.ubah(), yang
+    tetap tidak boleh menyentuh ketiga kolom itu (lihat berkas.KOLOM_UBAH).
     """
     pengguna = request.state.pengguna
     berkas = svc.ambil(int(request.path_params["id"]))
@@ -125,6 +128,14 @@ async def ubah(request):
         return PlainTextResponse("404 — Berkas tidak ditemukan.", 404)
     if not svc.boleh_akses(pengguna, berkas):
         return PlainTextResponse("403 — Berkas ini di luar wilayah Anda.", 403)
+    boleh_koreksi = pengguna["peran"] in auth.PERAN_KOREKSI_BERKAS
+
+    def halaman(nilai, galat=None, status=200):
+        return web.render(request, "berkas/ubah.html", {
+            "berkas": berkas, "nilai": nilai, "petugas": svc.daftar_petugas(),
+            "jenis": svc.daftar_jenis(), "tahapan": svc_tahapan.daftar(),
+            "boleh_koreksi": boleh_koreksi, "galat": galat,
+            "hari_ini": config.hari_ini_iso()}, status=status)
 
     if request.method == "POST":
         form = await request.form()
@@ -135,13 +146,46 @@ async def ubah(request):
             "petugas_id": web.int_atau(form.get("petugas_id")),
             "catatan": web.teks_atau_none(form.get("catatan")),
         }
+        # Nilai untuk render ulang kalau ada galat: data kiriman menimpa data lama,
+        # supaya ketikan pengguna tidak hilang.
+        nilai = dict(berkas) | data
+        alasan = web.teks_atau_none(form.get("alasan_koreksi"))
+        jenis_baru = tahapan_baru = None
+        if boleh_koreksi:
+            jenis_baru = web.teks_atau_none(form.get("jenis_permohonan_kode"))
+            tahapan_baru = web.teks_atau_none(form.get("tahapan_kode"))
+            nilai["jenis_permohonan_kode"] = jenis_baru or berkas["jenis_permohonan_kode"]
+            nilai["tahapan_kode"] = tahapan_baru or berkas["tahapan_kode"]
+            nilai["alasan_koreksi"] = alasan
+
+        ganti_jenis = bool(jenis_baru) and jenis_baru != berkas["jenis_permohonan_kode"]
+        ganti_tahapan = bool(tahapan_baru) and tahapan_baru != berkas["tahapan_kode"]
+        # Alasan diperiksa sebelum apa pun ditulis, supaya perubahan tidak
+        # separuh jalan: data administratif tersimpan tapi koreksinya ditolak.
+        if (ganti_jenis or ganti_tahapan) and not alasan:
+            return halaman(nilai, ["Perubahan jenis permohonan atau tahapan wajib "
+                                   "disertai alasan."], 400)
+
         svc.ubah(berkas["id"], data, pengguna["id"])
-        web.pesan(request, "Data berkas diperbarui.")
+        kabar = ["Data berkas diperbarui."]
+        try:
+            if ganti_jenis:
+                ringkas = svc_koreksi.ganti_jenis(berkas["id"], jenis_baru, alasan,
+                                                  pengguna["id"])
+                kabar.append(
+                    f"Jenis permohonan diganti; ceklis disusun ulang "
+                    f"({ringkas['syarat_baru']} syarat, "
+                    f"{ringkas['centang_dibawa']} centang dibawa).")
+            if ganti_tahapan:
+                svc_koreksi.perbaiki_tahapan(berkas["id"], tahapan_baru, alasan,
+                                             pengguna["id"])
+                kabar.append("Tahapan dikoreksi dan tercatat di riwayat.")
+        except (svc_koreksi.KoreksiDitolak, svc_tahapan.PindahDitolak) as galat:
+            kabar.append(f"Koreksi gagal: {galat}")
+        web.pesan(request, " ".join(kabar))
         return RedirectResponse(f"/berkas/{berkas['id']}", status_code=303)
 
-    return web.render(request, "berkas/ubah.html", {
-        "berkas": berkas, "nilai": berkas, "petugas": svc.daftar_petugas(),
-        "hari_ini": config.hari_ini_iso()})
+    return halaman(berkas)
 
 
 @auth.butuh_peran("admin", "sekretariat")

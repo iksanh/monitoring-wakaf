@@ -21,6 +21,52 @@ def salin_syarat(kon, berkas_id: int, jenis_kode: str) -> int:
     return len(baris)
 
 
+def rekam_keadaan(kon, berkas_id: int) -> list[dict]:
+    """Potret ceklis berkas apa adanya — dipakai log_audit sebelum disusun ulang."""
+    return [
+        {"syarat": b["nama"], "terpenuhi": b["terpenuhi"],
+         "tanggal_penuhi": b["tanggal_penuhi"], "catatan": b["catatan"]}
+        for b in kon.execute(
+            """SELECT s.nama, c.terpenuhi, c.tanggal_penuhi, c.catatan
+                 FROM ceklis_berkas c JOIN syarat s ON s.id = c.syarat_id
+                WHERE c.berkas_id = ? ORDER BY s.urutan""", (berkas_id,)).fetchall()
+    ]
+
+
+def selaraskan_syarat(kon, berkas_id: int, jenis_kode: str) -> dict:
+    """Susun ulang ceklis berkas mengikuti jenis permohonan yang baru.
+
+    Dipanggil services/berkas_koreksi.ganti_jenis() di dalam transaksinya.
+    Baris ceklis lama diganti daftar syarat jenis baru; centang, tanggal, dan
+    catatan dibawa pindah untuk syarat yang teksnya sama persis — banyak syarat
+    dipakai lebih dari satu jenis (AIW/APAIW, Surat Pengesahan Nazir, surat
+    kuasa), jadi pemeriksaan yang sudah dilakukan tidak perlu diulang.
+    """
+    lama = {b["syarat"]: b for b in rekam_keadaan(kon, berkas_id)}
+    kon.execute("DELETE FROM ceklis_berkas WHERE berkas_id = ?", (berkas_id,))
+    baru = kon.execute(
+        "SELECT id, nama FROM syarat WHERE jenis_permohonan_kode = ? ORDER BY urutan",
+        (jenis_kode,),
+    ).fetchall()
+    dibawa = 0
+    for s in baru:
+        sebelumnya = lama.get(s["nama"])
+        if sebelumnya and sebelumnya["terpenuhi"]:
+            dibawa += 1
+        kon.execute(
+            """INSERT INTO ceklis_berkas (berkas_id, syarat_id, terpenuhi,
+                                          tanggal_penuhi, catatan)
+               VALUES (?, ?, ?, ?, ?)""",
+            (berkas_id, s["id"],
+             sebelumnya["terpenuhi"] if sebelumnya else 0,
+             sebelumnya["tanggal_penuhi"] if sebelumnya else None,
+             sebelumnya["catatan"] if sebelumnya else None),
+        )
+    nama_baru = {s["nama"] for s in baru}
+    return {"syarat_lama": len(lama), "syarat_baru": len(baru), "centang_dibawa": dibawa,
+            "syarat_hilang": sorted(n for n in lama if n not in nama_baru)}
+
+
 def per_berkas(berkas_id: int) -> list[dict]:
     return db.ambil_semua(
         """SELECT c.*, s.nama, s.urutan, s.wajib

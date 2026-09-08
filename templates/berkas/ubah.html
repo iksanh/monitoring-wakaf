@@ -4,27 +4,22 @@
 <h1>Ubah Berkas</h1>
 <p class="lemah">Objek: <a href="/objek/{{ berkas.objek_wakaf_id }}">{{ berkas.nama_objek }}</a>
   ({{ berkas.objek_kode }})</p>
-
-<div class="kartu">
-  <div class="kartu-baris"><dt>Jenis permohonan</dt><dd>{{ berkas.jenis_nama }}</dd></div>
-  <div class="kartu-baris"><dt>Tahapan sekarang</dt><dd>{{ berkas.tahapan_nama }}</dd></div>
-  <div class="kartu-baris"><dt>Status</dt><dd>{{ berkas.status }}</dd></div>
-  <p class="lemah">Ketiganya tidak diubah dari halaman ini. Tahapan lewat tombol di
-    halaman berkas, status lewat “Batalkan pendaftaran” yang wajib beralasan.
-    Jenis permohonan terkunci karena ceklis syarat sudah disalin mengikutinya —
-    kalau jenisnya memang salah, batalkan pendaftarannya lalu daftar ulang.</p>
-</div>
+{% if galat %}
+<div class="notif notif-galat">{% for g in galat %}{{ g }}{% endfor %}</div>
+{% endif %}
 
 <form method="post" class="kartu">
   <label for="no_berkas">Nomor Berkas (loket KKP, boleh dikosongkan)</label>
   <input id="no_berkas" name="no_berkas" value="{{ nilai.no_berkas or '' }}">
+  <p class="lemah">Banyak berkas lama belum punya nomor loket — biarkan kosong
+    sampai nomornya keluar.</p>
 
   <label for="tanggal_daftar">Tanggal Daftar Loket</label>
   <input id="tanggal_daftar" name="tanggal_daftar" type="date"
          value="{{ nilai.tanggal_daftar or '' }}">
   <p class="lemah">Mengisi atau mengubah tanggal di sini <strong>tidak</strong>
     memindahkan tahapan. Berkas yang masih “Akan Didaftar” tetap di situ sampai
-    digerakkan lewat tombol tahapan.</p>
+    digerakkan lewat tombol tahapan{{ ' atau lewat koreksi di bawah' if boleh_koreksi }}.</p>
 
   <label for="target_penyerahan">Target Penyerahan</label>
   <input id="target_penyerahan" name="target_penyerahan" type="date"
@@ -41,6 +36,53 @@
 
   <label for="catatan">Catatan</label>
   <textarea id="catatan" name="catatan">{{ nilai.catatan or '' }}</textarea>
+
+  {% if boleh_koreksi %}
+  <details class="koreksi" {{ 'open' if galat or nilai.alasan_koreksi }}>
+    <summary>Koreksi jenis permohonan / tahapan</summary>
+    <p class="lemah">Dipakai kalau berkasnya <em>salah tercatat</em> sejak awal.
+      Keduanya wajib beralasan dan tercatat di riwayat. Biarkan apa adanya kalau
+      cuma memperbaiki nomor berkas.</p>
+
+    <label for="jenis_permohonan_kode">Jenis Permohonan</label>
+    <select id="jenis_permohonan_kode" name="jenis_permohonan_kode">
+      {% for j in jenis %}
+      <option value="{{ j.kode }}"
+        {{ 'selected' if nilai.jenis_permohonan_kode == j.kode }}>{{ j.nama }}</option>
+      {% endfor %}
+    </select>
+    <p class="lemah">Mengganti jenis akan <strong>menyusun ulang ceklis syarat</strong>
+      mengikuti jenis baru. Centang syarat yang namanya sama dibawa pindah; syarat
+      khas jenis lama hilang dari ceklis (keadaan lamanya tersimpan di log audit).</p>
+
+    <label for="tahapan_kode">Tahapan</label>
+    <select id="tahapan_kode" name="tahapan_kode">
+      {% for t in tahapan %}
+      <option value="{{ t.kode }}"
+        {{ 'selected' if nilai.tahapan_kode == t.kode }}>{{ t.nama }}</option>
+      {% endfor %}
+    </select>
+    <p class="lemah">Sekarang: <strong>{{ berkas.tahapan_nama }}</strong>. Koreksi ini
+      menulis baris baru di riwayat tahapan (maju = “masuk”, mundur = “mundur”),
+      bukan menghapus jejak lama. Berkas yang sudah berstatus selesai akan dibuka
+      lagi jadi aktif kalau tahapannya ditarik mundur.</p>
+
+    <label for="alasan_koreksi">Alasan Koreksi *</label>
+    <textarea id="alasan_koreksi" name="alasan_koreksi"
+              placeholder="Contoh: tanahnya ternyata sudah bersertipikat, jenis salah pilih di loket."
+              >{{ nilai.alasan_koreksi or '' }}</textarea>
+  </details>
+  {% else %}
+  <div class="kartu-baris"><dt>Jenis permohonan</dt><dd>{{ berkas.jenis_nama }}</dd></div>
+  <div class="kartu-baris"><dt>Tahapan sekarang</dt><dd>{{ berkas.tahapan_nama }}</dd></div>
+  <p class="lemah">Keduanya hanya bisa dikoreksi administrator atau sekretariat —
+    ganti jenis menyusun ulang ceklis syarat, koreksi tahapan menulis riwayat yang
+    jadi dasar rekap.</p>
+  {% endif %}
+
+  <div class="kartu-baris"><dt>Status</dt><dd>{{ berkas.status }}</dd></div>
+  <p class="lemah">Status tidak diubah dari halaman ini — jalurnya “Batalkan
+    pendaftaran” di halaman berkas, yang wajib beralasan.</p>
 
   <div class="aksi aksi-lengket">
     <button class="tombol">Simpan Perubahan</button>

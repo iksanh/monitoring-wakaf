@@ -1,8 +1,11 @@
 """Perbaikan data administratif berkas — terutama nomor berkas yang salah ketik.
 
 Yang dijaga di sini bukan cuma "kolomnya berubah", tapi kolom mana yang TIDAK
-boleh ikut berubah: tahapan_kode, status, dan jenis_permohonan_kode masing-masing
-punya jalurnya sendiri dan tidak boleh bisa ditembus lewat form ubah.
+boleh ikut berubah lewat services/berkas.ubah(): tahapan_kode, status, dan
+jenis_permohonan_kode masing-masing punya jalurnya sendiri. Halaman ubah memang
+menampilkan jenis dan tahapan untuk auth.PERAN_KOREKSI_BERKAS, tapi itu jalan
+lewat services/berkas_koreksi (diuji di tests/test_koreksi_berkas.py) — bukan
+lewat fungsi ini, yang tetap buta terhadap ketiga kolom itu.
 """
 import sys
 import unittest
@@ -78,7 +81,11 @@ class TesUbahBerkas(BasisTes):
         self.assertIsNone(baris["alasan_batal"])
 
     def test_jenis_permohonan_terkunci(self):
-        """Ceklis disalin mengikuti jenis, jadi jenis tidak boleh berubah diam-diam."""
+        """Ceklis disalin mengikuti jenis — ubah() tidak boleh menyentuhnya.
+
+        Penggantian jenis yang sah ada di services/berkas_koreksi.ganti_jenis(),
+        yang wajib beralasan dan menyusun ulang ceklisnya.
+        """
         sebelum = self.ceklis.progres(self.berkas)
         self.svc.ubah(self.berkas, self.isi(jenis_permohonan_kode="alih_media"),
                       self.pengguna_id)

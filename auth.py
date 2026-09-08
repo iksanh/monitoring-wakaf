@@ -38,6 +38,12 @@ PERAN_PENDAFTAR = ("admin", "sekretariat", "korwil", "petugas_loket")
 # loket ikut — merekalah yang paling cepat tahu kalau ada salah ketik.
 PERAN_UBAH_BERKAS = ("admin", "sekretariat", "petugas_loket")
 
+# Peran yang boleh mengoreksi jenis permohonan dan tahapan dari halaman Ubah
+# Berkas. Lebih sempit dari PERAN_UBAH_BERKAS: keduanya bukan salah ketik biasa —
+# ganti jenis menyusun ulang ceklis syarat, koreksi tahapan menulis riwayat yang
+# jadi dasar semua rekap. Keduanya wajib beralasan; lihat services/berkas_koreksi.
+PERAN_KOREKSI_BERKAS = ("admin", "sekretariat")
+
 
 def buat_hash(sandi: str) -> str:
     garam = secrets.token_hex(16)

@@ -112,9 +112,19 @@ Konsekuensi yang harus dipatuhi:
 11. **Data administratif berkas diperbaiki lewat `services/berkas.ubah()`**
     (halaman `/berkas/{id}/ubah`, peran di `auth.PERAN_UBAH_BERKAS`). `KOLOM_UBAH`
     sengaja sempit: `tahapan_kode`, `status`, dan `jenis_permohonan_kode` TIDAK
-    ada di dalamnya — masing-masing punya jalur sendiri (`tahapan.pindah()`,
-    `berkas_aksi.batalkan()`, dan batal-lalu-daftar-ulang). Salah jenis tidak
-    boleh ditambal di sini karena ceklis syarat sudah disalin mengikuti jenis.
+    ada di dalamnya dan tidak akan pernah ditulis fungsi itu.
+    `status` hanya lewat `berkas_aksi.batalkan()` yang wajib beralasan.
+    Dua kolom sisanya punya jalur koreksi sendiri di `services/berkas_koreksi.py`,
+    dipasang di halaman yang sama tapi hanya untuk `auth.PERAN_KOREKSI_BERKAS`
+    (`admin`, `sekretariat`) dan wajib beralasan:
+    - `ganti_jenis()` — mengubah jenis **dan** menyusun ulang ceklis lewat
+      `ceklis.selaraskan_syarat()`; centang syarat yang teksnya sama persis
+      dibawa pindah, keadaan ceklis lama disimpan utuh di `log_audit`.
+    - `perbaiki_tahapan()` — tetap menulis lewat `tahapan.pindah()` (aturan #1),
+      aksi `masuk` kalau maju dan `mundur` kalau mundur, jadi koreksinya tetap
+      meninggalkan jejak di `riwayat_tahapan`. Berkas berstatus `selesai` yang
+      ditarik mundur dibuka lagi jadi `aktif`.
+    Berkas berstatus `batal` tidak bisa dikoreksi — daftarkan ulang objeknya.
 12. **Hanya objek berstatus `bisa` yang boleh didaftarkan jadi berkas.**
     Ditegakkan di `services/berkas.buat()` (raise `ObjekBelumBisaDidaftarkan`),
     berlaku untuk semua peran — bukan cuma loket. Route mencegatnya lebih awal
@@ -185,6 +195,7 @@ Tandai saat selesai — ini yang membuat sesi berikutnya tahu posisi.
 - [x] Tambahan — Pemilahan objek (bisa/tidak bisa ditindaklanjuti) + dashboard ikut
 - [x] Tambahan — Peran `petugas_loket` + hanya objek `bisa` yang boleh didaftarkan
 - [x] Tambahan — Halaman Ubah Berkas (perbaikan nomor berkas dll)
+- [x] Tambahan — Koreksi jenis permohonan + tahapan di halaman Ubah Berkas
 
 ## Temuan Data yang Mengubah Angka di DESAIN_SISTEM.md
 
