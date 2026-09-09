@@ -12,8 +12,8 @@ from starlette.staticfiles import StaticFiles
 import auth
 import config
 import db
-from routes import (akun, berkas, dashboard, dokumen, impor, laporan, master,
-                    objek, pengaturan, rekap, sosialisasi, tahapan)
+from routes import (akun, berkas, daerah, dashboard, dokumen, impor, laporan,
+                    master, objek, pengaturan, rekap, sosialisasi, tahapan)
 
 rute = [
     *dashboard.rute,
@@ -26,6 +26,7 @@ rute = [
     *laporan.rute,
     *sosialisasi.rute,
     *master.rute,
+    *daerah.rute,
     *impor.rute,
     *pengaturan.rute,
     Mount("/static", StaticFiles(directory=str(config.AKAR / "static")), name="static"),

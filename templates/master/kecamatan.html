@@ -1,18 +1,55 @@
 {% extends "layout.html" %}
-{% block judul %}Master Kecamatan{% endblock %}
+{% block judul %}Master Kecamatan &amp; Desa{% endblock %}
 {% block isi %}
-<h1>Kecamatan</h1>
+<h1>Kecamatan &amp; Desa</h1>
 {% include "komponen/nav_master.html" %}
-<p class="lemah">17 kecamatan, dikelompokkan ke Wilayah I–IV.</p>
-<div class="tabel-bungkus">
+<p class="lemah">{{ baris | length }} kecamatan. Buka salah satunya untuk mengelola
+  daftar desanya.</p>
+
+<div class="hanya-mobile">
+  {% for b in baris %}
+  <div class="kartu">
+    <div class="kartu-judul"><a href="/master/kecamatan/{{ b.id }}">{{ b.nama }}</a></div>
+    <div class="lemah">{{ b.kode_singkat | kosong }} · {{ b.wilayah }}</div>
+    <div class="kartu-baris"><dt>Desa</dt><dd>{{ b.jumlah_desa }}</dd></div>
+    <div class="kartu-baris"><dt>Objek wakaf</dt>
+      <dd><a href="/objek?kecamatan_id={{ b.id }}">{{ b.jumlah_objek }}</a></dd></div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="hanya-desktop tabel-bungkus">
 <table>
   <tr><th>Nama</th><th>Kode</th><th>Wilayah</th><th class="angka">Desa</th>
       <th class="angka">Objek Wakaf</th></tr>
   {% for b in baris %}
-  <tr><td>{{ b.nama }}</td><td>{{ b.kode_singkat }}</td><td>{{ b.wilayah }}</td>
-      <td class="angka">{{ b.jumlah_desa }}</td>
+  <tr><td><a href="/master/kecamatan/{{ b.id }}">{{ b.nama }}</a></td>
+      <td>{{ b.kode_singkat | kosong }}</td><td>{{ b.wilayah }}</td>
+      <td class="angka"><a href="/master/kecamatan/{{ b.id }}">{{ b.jumlah_desa }}</a></td>
       <td class="angka"><a href="/objek?kecamatan_id={{ b.id }}">{{ b.jumlah_objek }}</a></td></tr>
   {% endfor %}
 </table>
 </div>
+
+{% if boleh_kelola %}
+<h2>Tambah Kecamatan</h2>
+<form method="post" class="kartu">
+  <label for="nama">Nama Kecamatan</label>
+  <input id="nama" name="nama" required autocomplete="off">
+  <label for="kode_singkat">Kode Singkat (tiga huruf)</label>
+  <input id="kode_singkat" name="kode_singkat" required maxlength="3"
+         pattern="[A-Za-z]{3}" autocapitalize="characters" autocomplete="off"
+         placeholder="mis. SWW">
+  <p class="lemah">Kode ini jadi awalan nomor objek wakaf, mis. WKF-SWW-001,
+    jadi tidak boleh sama dengan kecamatan lain.</p>
+  <label for="wilayah_id">Wilayah</label>
+  <select id="wilayah_id" name="wilayah_id" required>
+    <option value="">— pilih wilayah —</option>
+    {% for w in wilayah %}<option value="{{ w.id }}">{{ w.nama }}</option>{% endfor %}
+  </select>
+  <p class="lemah">Kecamatan tanpa wilayah tidak akan terlihat oleh korwil dan
+    petugas, jadi wajib dipilih.</p>
+  <div class="aksi"><button class="tombol">Tambah</button></div>
+</form>
+{% endif %}
 {% endblock %}

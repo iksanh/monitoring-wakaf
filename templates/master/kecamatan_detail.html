@@ -1,0 +1,96 @@
+{% extends "layout.html" %}
+{% block judul %}Kecamatan {{ kec.nama }}{% endblock %}
+{% block isi %}
+<h1>{{ kec.nama }}</h1>
+{% include "komponen/nav_master.html" %}
+<p class="lemah"><a href="/master/kecamatan">‹ Semua kecamatan</a> ·
+  {{ kec.wilayah }} · {{ kec.jumlah_desa }} desa ·
+  <a href="/objek?kecamatan_id={{ kec.id }}">{{ kec.jumlah_objek }} objek wakaf</a></p>
+
+{% if boleh_kelola %}
+<h2>Data Kecamatan</h2>
+<form method="post" class="kartu">
+  <input type="hidden" name="aksi" value="ubah">
+  <label for="nama">Nama Kecamatan</label>
+  <input id="nama" name="nama" value="{{ kec.nama }}" required autocomplete="off">
+  <label for="kode_singkat">Kode Singkat (tiga huruf)</label>
+  <input id="kode_singkat" name="kode_singkat" value="{{ kec.kode_singkat | default('', true) }}"
+         required maxlength="3" pattern="[A-Za-z]{3}" autocapitalize="characters"
+         autocomplete="off">
+  <p class="lemah">Kode objek yang sudah terbit tidak ikut berubah — yang memakai
+    kode baru hanya objek yang didaftarkan setelah ini.</p>
+  <label for="wilayah_id">Wilayah</label>
+  <select id="wilayah_id" name="wilayah_id" required>
+    {% for w in wilayah %}
+    <option value="{{ w.id }}" {{ 'selected' if kec.wilayah_id == w.id }}>{{ w.nama }}</option>
+    {% endfor %}
+  </select>
+  <div class="aksi"><button class="tombol">Simpan</button></div>
+</form>
+{% endif %}
+
+<h2>Desa ({{ desa | length }})</h2>
+{% if boleh_kelola %}
+<div class="kartu">
+  {% for d in desa %}
+  <div class="daerah-baris">
+    <form method="post" class="daerah-ubah">
+      <input type="hidden" name="aksi" value="desa_ubah">
+      <input type="hidden" name="desa_id" value="{{ d.id }}">
+      <input name="nama_desa" value="{{ d.nama }}" required
+             aria-label="Nama desa {{ d.nama }}" autocomplete="off">
+      <button class="tombol tombol-lain tombol-kecil">Simpan</button>
+    </form>
+    <span class="lemah daerah-pakai">
+      <a href="/objek?kecamatan_id={{ kec.id }}&amp;desa_id={{ d.id }}">{{ d.jumlah_objek }} objek</a>
+    </span>
+    <form method="post" data-konfirmasi="Hapus desa {{ d.nama }}?">
+      <input type="hidden" name="aksi" value="desa_hapus">
+      <input type="hidden" name="desa_id" value="{{ d.id }}">
+      <button class="tombol tombol-bahaya tombol-kecil"
+              {% if d.jumlah_pakai %}disabled
+              title="Masih dipakai {{ d.jumlah_pakai }} objek wakaf"{% endif %}>Hapus</button>
+    </form>
+  </div>
+  {% else %}
+  <p class="lemah">Belum ada desa di kecamatan ini.</p>
+  {% endfor %}
+</div>
+
+<h3>Tambah Desa</h3>
+<form method="post" class="kartu">
+  <input type="hidden" name="aksi" value="desa_tambah">
+  <label for="nama_desa">Nama Desa</label>
+  <input id="nama_desa" name="nama_desa" required autocomplete="off">
+  <div class="aksi"><button class="tombol">Tambah Desa</button></div>
+</form>
+
+<h2>Hapus Kecamatan</h2>
+<div class="kartu">
+  {% if kec.jumlah_pakai or kec.jumlah_desa %}
+  <p class="lemah">{{ kec.nama }} belum bisa dihapus: masih terpakai
+    {{ kec.jumlah_pakai }} baris data dan punya {{ kec.jumlah_desa }} desa.
+    Pindahkan objeknya dan hapus desanya dulu.</p>
+  {% else %}
+  <p class="lemah">Kecamatan ini belum dipakai data apa pun, jadi boleh dihapus.
+    Penghapusannya permanen.</p>
+  {% endif %}
+  <form method="post" data-konfirmasi="Hapus kecamatan {{ kec.nama }}?">
+    <input type="hidden" name="aksi" value="hapus">
+    <button class="tombol tombol-bahaya"
+            {{ 'disabled' if kec.jumlah_pakai or kec.jumlah_desa }}>Hapus Kecamatan</button>
+  </form>
+</div>
+
+{% else %}
+<ul class="daftar-tautan">
+  {% for d in desa %}
+  <li><a href="/objek?kecamatan_id={{ kec.id }}&amp;desa_id={{ d.id }}">{{ d.nama }}
+      <span class="lemah">{{ d.jumlah_objek }} objek</span></a></li>
+  {% else %}
+  <li><span class="lemah">Belum ada desa di kecamatan ini.</span></li>
+  {% endfor %}
+</ul>
+<p class="lemah">Hanya administrator yang boleh mengubah daftar kecamatan dan desa.</p>
+{% endif %}
+{% endblock %}

@@ -19,17 +19,6 @@ def wilayah() -> list[dict]:
     return db.ambil_semua("SELECT * FROM wilayah ORDER BY urutan")
 
 
-def kecamatan() -> list[dict]:
-    return db.ambil_semua(
-        """SELECT k.id, k.nama, k.kode_singkat, COALESCE(w.nama, '-') AS wilayah,
-                  (SELECT COUNT(*) FROM desa d WHERE d.kecamatan_id = k.id) AS jumlah_desa,
-                  (SELECT COUNT(*) FROM objek_wakaf o
-                    WHERE o.kecamatan_id = k.id AND o.is_aktif = 1) AS jumlah_objek
-             FROM kecamatan k LEFT JOIN wilayah w ON w.id = k.wilayah_id
-            ORDER BY w.urutan, k.nama"""
-    )
-
-
 def tipologi() -> list[dict]:
     return db.ambil_semua(
         """SELECT t.*, (SELECT COUNT(*) FROM objek_wakaf o

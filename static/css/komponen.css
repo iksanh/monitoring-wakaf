@@ -198,6 +198,22 @@ td.angka, th.angka { text-align: right; }
 .hanya-desktop { display: none; }
 .hanya-mobile { display: block; }
 
+/* ---------- baris master daerah (desa) ---------- */
+/* Satu baris = kolom nama yang bisa langsung diedit + dua tombol. Di 360px
+   ketiganya membungkus ke bawah; mulai 620px berjajar dalam satu baris. */
+.daerah-baris {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2);
+  padding: var(--sp-3) 0; border-bottom: 1px solid var(--garis-tipis);
+}
+.daerah-baris:last-child { border-bottom: 0; }
+.daerah-ubah { display: flex; gap: var(--sp-2); flex: 1 1 100%; min-width: 0; }
+.daerah-ubah input { flex: 1 1 auto; min-width: 0; }
+.daerah-pakai { flex: 1 1 auto; }
+@media (min-width: 620px) {
+  .daerah-ubah { flex: 1 1 auto; max-width: 420px; }
+  .daerah-pakai { text-align: right; }
+}
+
 /* ---------- statistik & corong ---------- */
 .petak { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--sp-3); margin-bottom: var(--sp-4); }
 .petak .kartu { margin: 0; }

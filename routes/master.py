@@ -8,11 +8,6 @@ from services import master as svc
 
 
 @auth.butuh_masuk
-async def kecamatan(request):
-    return web.render(request, "master/kecamatan.html", {"baris": svc.kecamatan()})
-
-
-@auth.butuh_masuk
 async def tipologi(request):
     return web.render(request, "master/tipologi.html", {"baris": svc.tipologi()})
 
@@ -102,7 +97,6 @@ async def ubah_pengguna(request):
 
 
 rute = [
-    Route("/master/kecamatan", kecamatan),
     Route("/master/tipologi", tipologi),
     Route("/master/syarat", syarat),
     Route("/master/tim", tim, methods=["GET", "POST"]),

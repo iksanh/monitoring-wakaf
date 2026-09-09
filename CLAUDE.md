@@ -131,6 +131,21 @@ Konsekuensi yang harus dipatuhi:
     supaya form pendaftaran tidak sempat tampil; pesannya dari satu tempat,
     `services/berkas.alasan_belum_bisa()`.
 
+13. **Kecamatan dan desa hanya ditulis lewat `services/daerah.py`** (halaman
+    `/master/kecamatan`, peran di `daerah.PERAN_PENGELOLA` — `admin` saja;
+    peran lain tetap boleh membaca daftarnya untuk mencocokkan ejaan).
+    Nama kecamatan unik sekabupaten, nama desa unik di dalam kecamatannya,
+    keduanya dibandingkan tanpa peduli huruf besar-kecil. `kode_singkat` tepat
+    tiga huruf dan unik karena jadi awalan kode objek (`WKF-SWW-001`).
+    Kecamatan **wajib** punya wilayah: tanpa itu ia tidak akan pernah muncul di
+    layar korwil dan petugas (aturan #3), jadi datanya hilang diam-diam.
+    Desa tidak bisa dipindah ke kecamatan lain — `objek_wakaf` menyimpan
+    `desa_id` DAN `kecamatan_id` terpisah, memindahnya membuat keduanya
+    bertentangan. Baris master hanya boleh dihapus selama belum ditunjuk data
+    apa pun; tabel `kecamatan`/`desa` tidak punya `is_aktif`, jadi memang tidak
+    ada penghapusan lunak di sini. Importer Excel tetap punya jalur sendiri
+    (`services/impor_simpan.py` membuat desa baru saat impor).
+
 ## Pengaturan Aplikasi
 
 - Pilihan yang berlaku sekantor disimpan di tabel `pengaturan` (kunci–nilai,
@@ -165,7 +180,7 @@ Konsekuensi yang harus dipatuhi:
   `services/tahapan.pindah()`, `services/pemilahan.pilah()`,
   aturan pendaftaran di `services/berkas.buat()`, semua fungsi di
   `services/rekap.py`, parser `services/impor_excel.py`, `services/pengaturan.py`,
-  dan `services/penyimpanan.py`
+  `services/daerah.py`, dan `services/penyimpanan.py`
   (backend S3 diuji dengan klien tiruan, jangan pernah memanggil AWS sungguhan).
 - Jalankan `python -m unittest discover tests` sebelum bilang selesai.
 
@@ -217,6 +232,7 @@ Tandai saat selesai — ini yang membuat sesi berikutnya tahu posisi.
 - [x] Tambahan — Halaman Ubah Berkas (perbaikan nomor berkas dll)
 - [x] Tambahan — Koreksi jenis permohonan + tahapan di halaman Ubah Berkas
 - [x] Tambahan — Halaman `/pengaturan` + saklar tampilan tag prioritas
+- [x] Tambahan — Kelola kecamatan & desa di `/master/kecamatan`
 
 ## Temuan Data yang Mengubah Angka di DESAIN_SISTEM.md
 
