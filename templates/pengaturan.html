@@ -1,0 +1,21 @@
+{% extends "layout.html" %}
+{% block judul %}Pengaturan{% endblock %}
+{% block isi %}
+<h1>Pengaturan</h1>
+<p class="lemah">Berlaku untuk semua pengguna, bukan cuma akun Anda.</p>
+
+<form method="post" class="kartu">
+  {% for p in daftar %}
+  <div class="atur-medan">
+    <label class="cek"><input type="checkbox" name="{{ p.kunci }}" value="1"
+      {{ 'checked' if p.nilai }}> {{ p.label }}</label>
+    <p class="lemah">{{ p.keterangan }}</p>
+  </div>
+  {% endfor %}
+
+  <div class="aksi aksi-lengket">
+    <button class="tombol">Simpan</button>
+    <a class="tombol tombol-lain" href="/">Batal</a>
+  </div>
+</form>
+{% endblock %}

@@ -3,6 +3,7 @@ from starlette.templating import Jinja2Templates
 
 import auth
 import config
+from services import pengaturan as svc_pengaturan
 
 templates = Jinja2Templates(directory=str(config.AKAR / "templates"))
 
@@ -70,6 +71,9 @@ def render(request, nama: str, konteks: dict | None = None, status: int = 200):
     data = {"request": request, "pengguna": getattr(request.state, "pengguna", None)}
     data.update(konteks or {})
     data.setdefault("pesan", request.session.pop("pesan", None))
+    # Disisipkan di sini, bukan di tiap route, supaya tidak ada halaman yang
+    # kelupaan — komponen bersama seperti lencana prioritas membacanya.
+    data.setdefault("pengaturan", svc_pengaturan.semua())
     return templates.TemplateResponse(request, nama, data, status_code=status)
 
 

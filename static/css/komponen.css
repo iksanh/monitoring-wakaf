@@ -344,6 +344,14 @@ td.angka, th.angka { text-align: right; }
   .dok-gambar img { max-height: 300px; }
 }
 
+/* ---------- halaman pengaturan ---------- */
+/* Satu baris per pilihan: centang, lalu keterangan di bawahnya. Bergaris
+   pemisah supaya masih terbaca sebagai daftar saat pilihannya bertambah. */
+.atur-medan { padding: var(--sp-3) 0; border-bottom: 1px solid var(--garis-tipis); }
+.atur-medan:last-of-type { border-bottom: 0; }
+.atur-medan .cek { min-height: var(--sentuh); font-weight: 600; }
+.atur-medan p { margin: 0; }
+
 /* ---------- pemilahan objek ---------- */
 /* Bilah aksi centang. Lengket di bawah layar HP supaya jempol selalu bisa
    menjangkaunya setelah menggulir daftar panjang. */

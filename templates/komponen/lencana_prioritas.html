@@ -1,2 +1,5 @@
-{# Dipakai daftar objek, daftar berkas, dan halaman detail. Butuh variabel `aktif`. #}
-{% if aktif %}<span class="lencana lencana-prioritas" title="Berkas prioritas">★ Prioritas</span>{% endif %}
+{# Dipakai daftar objek, daftar berkas, dan halaman detail. Butuh variabel `aktif`.
+   Tampil-tidaknya ditentukan pengaturan `tag_prioritas` (halaman /pengaturan);
+   `pengaturan` selalu ada karena disisipkan web.render(). Penanda dan penyaring
+   prioritas tetap jalan walau lencananya dimatikan. #}
+{% if aktif and pengaturan.tag_prioritas %}<span class="lencana lencana-prioritas" title="Berkas prioritas">★ Prioritas</span>{% endif %}

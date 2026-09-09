@@ -36,6 +36,7 @@
   {% if pengguna.peran == 'admin' %}
   <a href="/master/tim" class="{{ 'aktif' if request.url.path.startswith('/master') }}"><svg class="ikon" aria-hidden="true"><use href="#ikon-master"></use></svg><span>Master &amp; Tim</span></a>
   <a href="/impor" class="{{ 'aktif' if request.url.path.startswith('/impor') }}"><svg class="ikon" aria-hidden="true"><use href="#ikon-impor"></use></svg><span>Impor</span></a>
+  <a href="/pengaturan" class="{{ 'aktif' if request.url.path.startswith('/pengaturan') }}"><svg class="ikon" aria-hidden="true"><use href="#ikon-atur"></use></svg><span>Pengaturan</span></a>
   {% endif %}
   <hr>
   <a href="/ganti-sandi"><svg class="ikon" aria-hidden="true"><use href="#ikon-sandi"></use></svg><span>Ganti Sandi</span></a>

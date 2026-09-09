@@ -13,7 +13,7 @@ import auth
 import config
 import db
 from routes import (akun, berkas, dashboard, dokumen, impor, laporan, master,
-                    objek, rekap, sosialisasi, tahapan)
+                    objek, pengaturan, rekap, sosialisasi, tahapan)
 
 rute = [
     *dashboard.rute,
@@ -27,6 +27,7 @@ rute = [
     *sosialisasi.rute,
     *master.rute,
     *impor.rute,
+    *pengaturan.rute,
     Mount("/static", StaticFiles(directory=str(config.AKAR / "static")), name="static"),
 ]
 

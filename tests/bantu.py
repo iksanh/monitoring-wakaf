@@ -29,8 +29,10 @@ class BasisTes(unittest.TestCase):
     def setUp(self):
         # Kosongkan tabel transaksional supaya tes tidak saling mempengaruhi.
         with self.db.buka() as kon:
-            # tim.pengguna_id menunjuk ke pengguna — lepas dulu sebelum dihapus.
+            # tim.pengguna_id dan pengaturan.diubah_oleh menunjuk ke pengguna —
+            # lepas dulu sebelum barisnya dihapus.
             kon.execute("UPDATE tim SET pengguna_id = NULL")
+            kon.execute("UPDATE pengaturan SET diubah_oleh = NULL")
             for tabel in ("riwayat_tahapan", "ceklis_berkas", "dokumen", "kunjungan",
                           "log_audit", "berkas", "objek_wakaf", "pengguna"):
                 kon.execute(f"DELETE FROM {tabel}")

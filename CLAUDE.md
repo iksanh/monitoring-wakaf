@@ -131,6 +131,25 @@ Konsekuensi yang harus dipatuhi:
     supaya form pendaftaran tidak sempat tampil; pesannya dari satu tempat,
     `services/berkas.alasan_belum_bisa()`.
 
+## Pengaturan Aplikasi
+
+- Pilihan yang berlaku sekantor disimpan di tabel `pengaturan` (kunci–nilai,
+  migrasi 015) dan hanya dibaca/ditulis lewat `services/pengaturan.py`.
+  Bedanya dengan `config.py`: yang di sana dibaca dari environment variable dan
+  baru berubah saat deploy; yang di sini diubah administrator dari `/pengaturan`
+  sambil aplikasi jalan, dan berlaku untuk semua pengguna sekaligus.
+- Menambah pengaturan baru = menambah satu entri di `pengaturan.TERSEDIA`
+  (bawaan, label, keterangan). **Tidak perlu migrasi lagi** — barisnya lahir saat
+  pertama kali disimpan, sebelum itu `ambil()` memakai bawaannya.
+- `web.render()` menyisipkan dict `pengaturan` ke konteks setiap halaman, jadi
+  komponen bersama tinggal membacanya (`{% if pengaturan.tag_prioritas %}`).
+  Sengaja di satu tempat supaya tidak ada route yang kelupaan mengirimnya.
+- `tag_prioritas` **hanya menyembunyikan lencana ★** (satu berkas:
+  `templates/komponen/lencana_prioritas.html`, dipakai daftar objek, daftar
+  berkas, dan kedua halaman detail). Kolom `objek_wakaf.is_prioritas`, urutan
+  daftar yang mendahulukan prioritas, dan penyaring “Hanya prioritas” **tidak**
+  terpengaruh — mematikan tampilannya tidak boleh mengubah angka atau data.
+
 ## UI
 
 - **Mobile-first.** Petugas memakai HP di lapangan. Rancang untuk lebar 360px dulu,
@@ -145,7 +164,8 @@ Konsekuensi yang harus dipatuhi:
 - `tests/` pakai `unittest` stdlib. Wajib ada tes untuk:
   `services/tahapan.pindah()`, `services/pemilahan.pilah()`,
   aturan pendaftaran di `services/berkas.buat()`, semua fungsi di
-  `services/rekap.py`, parser `services/impor_excel.py`, dan `services/penyimpanan.py`
+  `services/rekap.py`, parser `services/impor_excel.py`, `services/pengaturan.py`,
+  dan `services/penyimpanan.py`
   (backend S3 diuji dengan klien tiruan, jangan pernah memanggil AWS sungguhan).
 - Jalankan `python -m unittest discover tests` sebelum bilang selesai.
 
@@ -196,6 +216,7 @@ Tandai saat selesai — ini yang membuat sesi berikutnya tahu posisi.
 - [x] Tambahan — Peran `petugas_loket` + hanya objek `bisa` yang boleh didaftarkan
 - [x] Tambahan — Halaman Ubah Berkas (perbaikan nomor berkas dll)
 - [x] Tambahan — Koreksi jenis permohonan + tahapan di halaman Ubah Berkas
+- [x] Tambahan — Halaman `/pengaturan` + saklar tampilan tag prioritas
 
 ## Temuan Data yang Mengubah Angka di DESAIN_SISTEM.md
 
